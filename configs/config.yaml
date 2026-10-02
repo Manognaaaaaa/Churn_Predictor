@@ -1,0 +1,33 @@
+# Single source of truth for paths, dates, seeds, thresholds and budgets.
+# Placeholder values: finalised in step 1 once the dataset is chosen.
+
+seed: 42
+
+paths:
+  raw: data/raw
+  interim: data/interim
+  processed: data/processed
+  artifacts: artifacts
+  reports: reports
+
+windows:
+  snapshot_frequency: monthly
+  observation_months: 6        # history used to build features
+  prediction_horizon_months: 3 # churn label looks this far ahead
+  train_end: "TBD"             # YYYY-MM-DD, last snapshot in training window
+  valid_end: "TBD"
+  test_end: "TBD"
+  cv_expanding_folds: 4
+
+budget:
+  total: 100000                # currency units for the retention campaign
+  currency: "TBD"
+  max_spend_per_customer: 500
+
+risk_bands:                    # on calibrated P(churn)
+  green_max: 0.20
+  amber_max: 0.50              # above this -> red
+
+segmentation:
+  gmm_k_range: [2, 8]          # chosen by BIC
+  value_tiers: [low, mid, high]

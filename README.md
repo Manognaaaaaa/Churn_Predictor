@@ -4,7 +4,6 @@ From raw data to a calibrated churn model, revenue at risk, a segment-aware rete
 
 ![CI](https://img.shields.io/badge/CI-placeholder-lightgrey) ![Python](https://img.shields.io/badge/python-3.11-blue) ![License](https://img.shields.io/badge/license-TBD-lightgrey)
 
-Course project for MAC F312 Foundations of Data Science (BITS Pilani Dubai), also built as portfolio work.
 
 ## Problem
 
@@ -142,9 +141,4 @@ pip install -r requirements.txt
 - TBD: dataset-specific limits (churn definition, time span, single-company data).
 - TBD: calibration drift over time is not monitored.
 
-## Team
 
-| Name | Owned steps |
-|---|---|
-| TBD | 1, 2, 3, 4 |
-| TBD | 5, 6, 7 |

@@ -16,7 +16,7 @@ mocks:
 	python scripts/make_mocks.py
 
 data:
-	@echo "TODO: step 2"
+	PYTHONPATH=src python -m churn.pipeline.run_data
 
 features:
 	@echo "TODO: step 3"

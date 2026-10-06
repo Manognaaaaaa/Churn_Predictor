@@ -19,10 +19,10 @@ data:
 	PYTHONPATH=src python -m churn.pipeline.run_data
 
 features:
-	@echo "TODO: step 3"
+	PYTHONPATH=src python -m churn.pipeline.run_features
 
 train:
-	@echo "TODO: step 4"
+	PYTHONPATH=src python -m churn.pipeline.run_train
 
 risk:
 	@echo "TODO: step 5"

@@ -41,13 +41,16 @@ def main() -> None:
     # single feature matrix with split column for downstream steps
     frames = []
     for name, idx in [("train", train_idx), ("valid", valid_idx), ("test", test_idx)]:
-        part = df.loc[idx, ["customer_id", "churned", "snapshot_date"]].copy()
+        part = df.loc[idx, ["customer_id", "churned", "snapshot_date", "customer_value"]].copy()
+        part = part.rename(columns={"customer_value": "customer_value_raw"})
         part["split"] = name
         frames.append(part)
     meta = pd.concat(frames, ignore_index=False)
 
-    x_all = pd.concat([x_train, x_valid, x_test])
-    out = pd.concat([meta, x_all.reset_index(drop=True)], axis=1)
+    x_all = pd.concat([x_train, x_valid, x_test]).reset_index(drop=True)
+    # note: the feature matrix also has a cleaned "customer_value" column;
+    # meta keeps the raw value separately as customer_value_raw for economics.
+    out = pd.concat([meta.reset_index(drop=True), x_all], axis=1)
     out.to_parquet(processed / "features.parquet", index=False)
 
     print(f"features.parquet: {len(out)} rows x {len(fb.feature_names_)} features")

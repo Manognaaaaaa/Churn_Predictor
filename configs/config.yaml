@@ -63,7 +63,8 @@ models:
     methods: [platt, isotonic]
     ece_bins: 15
   threshold:
-    offer_cost: 50.0            # cost of targeting a customer who would have stayed
+    offer_cost_frac: 0.10       # retention offer costs ~10% of customer value
+    offer_uplift: 0.30          # offer cuts that customer's churn risk by ~30%
   lstm:
     seq_len: 6                  # synthetic temporal augmentation length (see model card)
     hidden: 64

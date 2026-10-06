@@ -31,10 +31,10 @@ allocate:
 	PYTHONPATH=src python -m churn.pipeline.run_allocate
 
 api:
-	@echo "TODO: step 7"
+	PYTHONPATH=src python -m uvicorn api.app:app --port 8000
 
 web:
-	@echo "TODO: step 7"
+	cd frontend && npm install && npm run dev
 
 test:
 	python -m pytest

@@ -28,7 +28,7 @@ risk:
 	PYTHONPATH=src python -m churn.pipeline.run_risk
 
 allocate:
-	@echo "TODO: step 6"
+	PYTHONPATH=src python -m churn.pipeline.run_allocate
 
 api:
 	@echo "TODO: step 7"

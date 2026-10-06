@@ -57,10 +57,10 @@ def test_cleaning_pipeline_no_leakage_shapes(raw):
 
 
 def test_derived_features():
-    df = pd.DataFrame({"Balance": [0.0, 100.0], "EstimatedSalary": [50.0, 50.0]})
+    df = pd.DataFrame({"Balance": [0.0, 100.0], "customer_value": [50.0, 50.0]})
     out = derive_features(df)
     assert out["zero_balance"].tolist() == [1, 0]
-    assert np.allclose(out["balance_salary_ratio"], [0.0, 100.0 / 51.0])
+    assert np.allclose(out["balance_value_ratio"], [0.0, 100.0 / 51.0])
 
 
 def test_monthly_snapshot_labels():

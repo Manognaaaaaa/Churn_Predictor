@@ -64,7 +64,7 @@ class CleaningPipeline:
 def derive_features(df: pd.DataFrame) -> pd.DataFrame:
     """Static derived features shared by all models (no fitting involved)."""
     out = df.copy()
-    if {"Balance", "EstimatedSalary"} <= set(out.columns):
-        out["balance_salary_ratio"] = out["Balance"] / (out["EstimatedSalary"] + 1.0)
+    if {"Balance", "customer_value"} <= set(out.columns):
+        out["balance_value_ratio"] = out["Balance"] / (out["customer_value"].abs() + 1.0)
         out["zero_balance"] = (out["Balance"] <= 0).astype(int)
     return out

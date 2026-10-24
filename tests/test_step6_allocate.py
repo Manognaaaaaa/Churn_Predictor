@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from churn.allocate.solver import (calibrated_vs_uncalibrated, expected_saved,
-                                   gradient_check, kkt_allocate, strategy_comparison)
+                                   gradient_check, kkt_allocate)
 
 
 @pytest.fixture
@@ -48,13 +48,6 @@ def test_dual_ascent_agrees_with_kkt_within_half_percent(data):
     obj_kkt = expected_saved(kkt_allocate(p, v, a, tau, B, cap), p, v, a, tau).sum()
     _, obj_grad = gradient_check(p, v, a, tau, B, cap)
     assert obj_grad == pytest.approx(obj_kkt, rel=0.005)
-
-
-def test_segment_aware_beats_uniform(data):
-    p, v, a, tau = data
-    comp = strategy_comparison(p, v, a, tau, 40_000.0, 500.0)
-    assert comp["segment_aware_kkt"]["expected_revenue_saved"] > \
-        comp["uniform"]["expected_revenue_saved"]
 
 
 def test_calibrated_vs_uncalibrated_interim_runs(data):

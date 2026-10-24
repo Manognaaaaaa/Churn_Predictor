@@ -136,3 +136,11 @@ allocation:
     service_call:    {flat: 100.0, cost_frac: 0.0,   eligible: {tiers: [low, mid, high], engagement: [low]}}
     retention_bonus: {flat: 250.0, cost_frac: 0.0,   eligible: {tiers: [mid, high],      engagement: [high]}}
     value_discount:  {flat: 0.0,   cost_frac: 0.005, eligible: {tiers: [low, mid, high], engagement: [high]}}  # 0.5% of value
+
+  # ---- evaluation of claim 2 (Step 8.3) ---------------------------------------------
+  # Budgets below are PORTFOLIO budgets (all customers). A split is evaluated at
+  # budget * (n_split / n_all) so spend per customer is the same as in production.
+  eval_split: test
+  budget_sweep: [10000, 25000, 50000, 100000, 200000, 400000, 700000, 1000000]
+  bootstrap_resamples: 1000       # customer resamples for CIs on realized saved revenue
+  bootstrap_level: 0.90

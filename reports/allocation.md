@@ -97,19 +97,32 @@ and `λ ← max(0, λ + η'(Σx − B))`. `run_allocate` asserts its objective a
 within 0.5% (`allocation.dual_check_tolerance`).
 
 
-Budget: 100,000 EUR -> 544 customers targeted, 99,811 spent, expected 567,354 saved
+## Strategy comparison on the test split (claim 2)
 
-## Strategy comparison (equal budget)
+1500 customers, budget 15,000 (= portfolio budget 100,000 x population share 0.15). All strategies are scored with the same segment-aware response model; `global_kkt` solves with one global a and t instead. *Continuous* = solved spend; *snapped* = after offer matching and budget re-balancing. *Realized saved* uses the true churn labels (one realisation, noisy).
 
-|                   |   spend |   expected_revenue_saved |   n_targeted |
-|:------------------|--------:|-------------------------:|-------------:|
-| segment_aware_kkt |  100000 |                   600757 |          428 |
-| uniform           |  100000 |                   117909 |        10000 |
-| risk_proportional |  100000 |                   299599 |         7704 |
+| strategy              | spend mode   |   spend |   expected saved |   targeted |   saved per spend |   realized saved (labels) |
+|:----------------------|:-------------|--------:|-----------------:|-----------:|------------------:|--------------------------:|
+| segment_aware_kkt     | continuous   | 15000   |         88004.9  |         57 |             5.867 |                  85659    |
+| segment_aware_kkt     | snapped      | 14872.9 |         82422.9  |         83 |             5.542 |                  80962.5  |
+| global_kkt            | continuous   | 15000   |         75330.8  |         49 |             5.022 |                  73606.2  |
+| global_kkt            | snapped      | 14857.9 |         77772.4  |        100 |             5.234 |                  78515    |
+| uniform               | continuous   | 15000   |         17703.6  |       1500 |             1.18  |                  17814.9  |
+| uniform               | snapped      |  7500   |          8874.65 |       1500 |             1.183 |                   8926.38 |
+| top_k_risk            | continuous   | 15000   |         75941.9  |         30 |             5.063 |                  73990    |
+| top_k_risk            | snapped      | 14775.9 |         78113.1  |         83 |             5.287 |                  79282.9  |
+| top_k_revenue_at_risk | continuous   | 15000   |         59801.6  |         30 |             3.987 |                  57840.3  |
+| top_k_revenue_at_risk | snapped      | 14916.7 |         60195.9  |         90 |             4.035 |                  60969.4  |
+| risk_proportional     | continuous   | 15000   |         41647.5  |       1197 |             2.776 |                  40377.3  |
+| risk_proportional     | snapped      | 15000   |         43752.6  |        942 |             2.917 |                  41681.7  |
 
-## Offer matching (stage 2)
+Segment-aware vs global KKT (continuous): 88,005 vs 75,331 expected saved (+16.82%). Realized difference 12,053, 90% bootstrap CI [-9,739, 34,953] over customers.
 
-Continuous KKT saves 600,757; after snapping to the catalog (budget re-balanced in 31 rounds, effective stage-1 budget 156,005) the plan spends 99,811 and saves 567,354.
+![strategy vs budget](figures/strategy_vs_budget.png)
+
+## Production plan and offer matching (stage 2)
+
+Portfolio budget 100,000 EUR on all customers: 544 targeted, 99,811 spent. Continuous KKT would save 600,757; after snapping to the catalog (re-balanced in 31 rounds, effective stage-1 budget 156,005) it saves 567,354.
 
 |                 |   customers |
 |:----------------|------------:|
@@ -119,28 +132,24 @@ Continuous KKT saves 600,757; after snapping to the catalog (budget re-balanced 
 | fee_waiver      |          23 |
 | loyalty_email   |           3 |
 
-## KKT vs gradient check
+## KKT vs dual ascent
 
 - KKT objective (continuous spend): 600,757
-- Dual-ascent objective: 600,604 (gap 0.025%, tolerance 0.5%)
+- Dual-ascent objective: 600,591 (gap 0.028%)
 
-## Sensitivity (interim ±30%; rebuilt in Phase 8.5)
+## Sensitivity (interim +-30%; rebuilt in Phase 8.5)
 
 | scenario   |   a_factor |   tau_factor |   expected_revenue_saved |
 |:-----------|-----------:|-------------:|-------------------------:|
-| base       |          1 |            1 |                   600757 |
-| a_low      |          1 |            1 |                   420530 |
-| a_high     |          1 |            1 |                   780985 |
-| tau_low    |          1 |            1 |                   832060 |
-| tau_high   |          1 |            1 |                   471520 |
+| base       |        1   |          1   |                   600757 |
+| a_low      |        0.7 |          1   |                   420530 |
+| a_high     |        1.3 |          1   |                   780985 |
+| tau_low    |        1   |          0.7 |                   832060 |
+| tau_high   |        1   |          1.3 |                   471520 |
 
-## Calibrated vs uncalibrated allocation
+## Calibrated vs uncalibrated (interim, circular; replaced in Phase 8.4)
 
-- Allocations built on calibrated scores save 600,757
-- Allocations built on raw scores save only 597,945
-- **Misallocation cost of uncalibrated scores: 2,812** (validates README claim 1)
-
-Note: the gap is small because isotonic calibration is rank-preserving - it cannot reorder customers, only rescale probabilities. The misallocation cost measures value-weighting differences, not ranking errors. A miscalibrated model with a different ranking would show a larger gap.
+Both allocations are scored with the calibrated probabilities, so calibrated wins by construction (600,757 vs 597,945). This does not test claim 1.
 
 ## Assumptions
-- Response curves are assumptions, not measured uplift (see sensitivity above).
+- Response curves and offer costs/eligibility are assumptions, not measured uplift.

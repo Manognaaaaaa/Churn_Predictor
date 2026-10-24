@@ -8,6 +8,7 @@ import pandas as pd
 
 from churn.allocate import groups as gp
 from churn.allocate import offers as of
+from churn.allocate.report import write_report
 from churn.allocate import solver as sv
 from churn.config import ROOT, ensure_dirs, load_config
 
@@ -21,7 +22,8 @@ def main() -> None:
     seg = pd.read_parquet(artifacts / "segments.parquet")
     p_cal = scores["p_churn_calibrated"].to_numpy(float)
     p_raw = scores["p_churn_raw"].to_numpy(float)
-    v = scores["revenue_at_risk"].to_numpy(float) / np.maximum(p_cal, 1e-9)  # raw value back out
+    v = (scores["customer_value"].to_numpy(float) if "customer_value" in scores
+         else scores["revenue_at_risk"].to_numpy(float) / np.maximum(p_cal, 1e-9))
     budget = float(cfg["budget"]["total"])
     cap = float(cfg["budget"]["max_spend_per_customer"])
     feats = pd.read_parquet(ROOT / cfg["paths"]["processed"] / "features.parquet")
@@ -31,9 +33,6 @@ def main() -> None:
     seg_idx = seg.set_index("customer_id").loc[scores["customer_id"]]
     a, tau = gp.customer_params(seg_idx["segment_id"].to_numpy(),
                                 seg_idx["value_tier"].to_numpy(), table, v)
-
-    # ---- strategy comparison at equal budget
-    comp = sv.strategy_comparison(p_cal, v, a, tau, budget, cap)
 
     # ---- chosen allocation: segment-aware KKT (README claim 2), then offer snapping
     acfg = cfg["allocation"]
@@ -95,7 +94,6 @@ def main() -> None:
 
     report = {
         "budget": budget, "currency": cfg["budget"]["currency"],
-        "strategy_comparison": comp,
         "gradient_check": {"kkt_objective": float(saved_cont.sum()), "gradient_objective": grad_saved,
                            "rel_gap": rel_gap},
         "sensitivity": sens,
@@ -115,47 +113,10 @@ def main() -> None:
     }
     (artifacts / "allocation_report.json").write_text(json.dumps(report, indent=2, default=str))
 
-    deriv = (ROOT / "docs" / "allocation_derivation.md").read_text(encoding="utf-8")
-    lines = ["# Allocation report", "",
-             "## Response-curve groups (segment x value tier)", "",
-             (ROOT / "docs" / "response_curve_rule.md").read_text(encoding="utf-8"), "",
-             table.round(4).to_markdown(index=False), "",
-             deriv, "",
-             f"Budget: {budget:,.0f} {cfg['budget']['currency']} "
-             f"-> {len(alloc)} customers targeted, "
-             f"{alloc['spend'].sum():,.0f} spent, "
-             f"expected {alloc['expected_revenue_saved'].sum():,.0f} saved", "",
-             "## Strategy comparison (equal budget)", "",
-             pd.DataFrame(comp).T.round(0).to_markdown(), "",
-             "## Offer matching (stage 2)", "",
-             f"Continuous KKT saves {saved_cont.sum():,.0f}; after snapping to the catalog "
-             f"(budget re-balanced in {snapped['iterations']} rounds, effective stage-1 budget "
-             f"{snapped['effective_budget']:,.0f}) the plan spends {s.sum():,.0f} and saves "
-             f"{saved.sum():,.0f}.", "",
-             pd.Series(offer_arr[s > 0]).value_counts().rename("customers").to_frame().to_markdown(),
-             "",
-             "## KKT vs gradient check", "",
-             f"- KKT objective (continuous spend): {saved_cont.sum():,.0f}",
-             f"- Dual-ascent objective: {grad_saved:,.0f} (gap {rel_gap:.3%}, tolerance {tol:.1%})", "",
-             "## Sensitivity (interim ±30%; rebuilt in Phase 8.5)", "",
-             pd.DataFrame(sens).round(0).to_markdown(index=False), "",
-             "## Calibrated vs uncalibrated allocation", "",
-             f"- Allocations built on calibrated scores save {cvu['saved_calibrated_allocation']:,.0f}",
-             f"- Allocations built on raw scores save only {cvu['saved_uncalibrated_allocation']:,.0f}",
-             f"- **Misallocation cost of uncalibrated scores: {cvu['misallocation_cost']:,.0f}** "
-             "(validates README claim 1)", "",
-             "Note: the gap is small because isotonic calibration is rank-preserving - it "
-             "cannot reorder customers, only rescale probabilities. The misallocation cost "
-             "measures value-weighting differences, not ranking errors. A miscalibrated "
-             "model with a different ranking would show a larger gap.", "",
-             "## Assumptions",
-             "- Response curves are assumptions, not measured uplift (see sensitivity above)."]
-    (ROOT / cfg["paths"]["reports"] / "allocation.md").write_text("\n".join(lines), encoding="utf-8")
+    write_report(cfg)
 
     print(f"allocations.parquet: {len(alloc)} rows, spent {alloc['spend'].sum():,.0f}, "
           f"expected saved {alloc['expected_revenue_saved'].sum():,.0f}")
-    print(f"strategies (saved): " +
-          ", ".join(f"{k}={d['expected_revenue_saved']:,.0f}" for k, d in comp.items()))
     print(f"uncalibrated misallocation cost: {cvu['misallocation_cost']:,.0f}")
 
 

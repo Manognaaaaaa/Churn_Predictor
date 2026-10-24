@@ -27,8 +27,8 @@ def allocate(req: AllocateRequest):
     cap = float(cfg["budget"]["max_spend_per_customer"])
 
     p = scores["p_churn_calibrated"].to_numpy(float)
-    rar = scores["revenue_at_risk"].to_numpy(float)
-    v = rar / np.maximum(p, 1e-9)
+    v = (scores["customer_value"].to_numpy(float) if "customer_value" in scores
+         else scores["revenue_at_risk"].to_numpy(float) / np.maximum(p, 1e-9))
 
     seg_idx = segments.set_index("customer_id").loc[scores["customer_id"]]
     table = artifacts._group_params()

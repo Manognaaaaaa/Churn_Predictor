@@ -74,20 +74,6 @@ def expected_saved(x: np.ndarray, p: np.ndarray, v: np.ndarray, a: np.ndarray,
     return _b(p, v, a) * (1 - np.exp(-np.asarray(x, float) / np.asarray(tau, float)))
 
 
-def strategy_comparison(p: np.ndarray, v: np.ndarray, a: np.ndarray, tau: np.ndarray,
-                        budget: float, cap: float) -> dict:
-    """Interim comparison (rewritten with all baselines in Phase 8.3)."""
-    n = len(p)
-    strat = {"segment_aware_kkt": kkt_allocate(p, v, a, tau, budget, cap),
-             "uniform": np.full(n, min(budget / n, cap))}
-    share = v * p / max((v * p).sum(), 1e-12)
-    strat["risk_proportional"] = np.minimum(share * budget, cap)
-    return {name: {"spend": float(x.sum()),
-                   "expected_revenue_saved": float(expected_saved(x, p, v, a, tau).sum()),
-                   "n_targeted": int((x > 0.5).sum())}
-            for name, x in strat.items()}
-
-
 def sensitivity(p: np.ndarray, v: np.ndarray, a: np.ndarray, tau: np.ndarray,
                 budget: float, cap: float, perturb: float = 0.30) -> list[dict]:
     """Interim ±perturb sensitivity on a and tau (rewritten in Phase 8.5)."""

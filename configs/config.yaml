@@ -78,6 +78,25 @@ forecast:
   history_months: 24
   baseline_window: 6            # moving-average baseline
   arima_order: [1, 1, 1]
+  # ---- candidate real series (Phase 9.0). `source` is chosen after the 9.0 checkpoint. ----
+  sources:
+    telco_reconstruction:         # revenue rebuilt from tenure x Monthly Charges (survivorship-biased)
+      path: data/raw/Telco_customer_churn.xlsx
+      tenure_col: Tenure Months
+      charge_col: Monthly Charges
+      snapshot_month: "2019-06"   # the file has no calendar date: assumed snapshot month (assumption)
+      months: 72
+      freq: MS
+    online_retail:                # UCI Online Retail II, real dated invoices
+      path: data/raw/online_retail_II.xlsx
+      cache: data/interim/online_retail_ii.parquet
+      drop_invoice_prefix: "C"    # cancellations
+      min_quantity: 0             # keep Quantity > this
+      min_price: 0                # keep Price > this
+  choice_report:
+    adf_regression: c             # ADF with constant
+    seasonal_period: {MS: 12, W-SUN: 52}
+    decomposition_model: additive
 
 budget:
   total: 100000

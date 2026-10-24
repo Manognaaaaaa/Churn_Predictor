@@ -144,3 +144,11 @@ allocation:
   budget_sweep: [10000, 25000, 50000, 100000, 200000, 400000, 700000, 1000000]
   bootstrap_resamples: 1000       # customer resamples for CIs on realized saved revenue
   bootstrap_level: 0.90
+
+  # ---- calibration claim, sensitivity, rounds (Step 8.4-8.6) ---------------------------
+  calibration_sources: [p_rf_isotonic, p_rf_platt, p_rf_raw, p_rf_smote_raw, p_naive_bayes_raw, p_xgboost_raw]
+  sensitivity_levels: [-0.5, -0.25, 0.25, 0.5]   # relative change of each a_g and t_g
+  rounds: 6                       # monthly reallocation rounds
+  rounds_seeds: 200               # paired simulations for the rounds-vs-one-shot comparison
+  rounds_interval: 0.90
+  reason_response_band: 0.05      # a_g within +-5% of default a -> 'responds on par'

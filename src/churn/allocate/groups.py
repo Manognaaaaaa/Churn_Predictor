@@ -78,3 +78,14 @@ def global_params(n: int, v: np.ndarray, cfg: dict) -> tuple[np.ndarray, np.ndar
     """One global (a, t) for every customer: the `global_kkt` baseline."""
     rc = cfg["allocation"]["response_curves"]
     return np.full(n, float(rc["a"])), np.maximum(rc["t"] * np.asarray(v, float), 1e-6)
+
+
+def explain_group(table: pd.DataFrame, segment_id: int, tier: str, cfg: dict) -> str:
+    """Plain-language reason built from the group's response parameters (a_g, t_g, class, tier)."""
+    row = table[(table["segment_id"] == segment_id) & (table["value_tier"] == tier)].iloc[0]
+    ratio = row["a_g"] / cfg["allocation"]["response_curves"]["a"]
+    band = cfg["allocation"]["reason_response_band"]
+    resp = "responds strongly" if ratio > 1 + band else "responds weakly" if ratio < 1 - band \
+        else "responds on par with the average"
+    size = {"high": "offer sized up", "low": "offer sized down"}.get(tier, "standard offer size")
+    return f"{row['engagement_class'].capitalize()}-engagement, {tier} value: {resp}, {size}"

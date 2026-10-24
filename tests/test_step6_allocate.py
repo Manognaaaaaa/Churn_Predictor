@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from churn.allocate.solver import (calibrated_vs_uncalibrated, expected_saved,
-                                   gradient_check, kkt_allocate)
+from churn.allocate.solver import expected_saved, gradient_check, kkt_allocate
 
 
 @pytest.fixture
@@ -48,14 +47,3 @@ def test_dual_ascent_agrees_with_kkt_within_half_percent(data):
     obj_kkt = expected_saved(kkt_allocate(p, v, a, tau, B, cap), p, v, a, tau).sum()
     _, obj_grad = gradient_check(p, v, a, tau, B, cap)
     assert obj_grad == pytest.approx(obj_kkt, rel=0.005)
-
-
-def test_calibrated_vs_uncalibrated_interim_runs(data):
-    # The old "uncalibrated never beats calibrated" assertion is gone: it held only because
-    # both allocations were scored with p_cal. The label-based test arrives in Phase 8.4.
-    p_cal, v, a, tau = data
-    rng = np.random.default_rng(1)
-    p_raw = np.clip(p_cal + rng.normal(0, 0.05, len(p_cal)), 0.01, 0.99)
-    out = calibrated_vs_uncalibrated(p_cal, p_raw, v, a, tau, 40_000.0, 500.0)
-    assert set(out) == {"saved_calibrated_allocation", "saved_uncalibrated_allocation",
-                        "misallocation_cost"}

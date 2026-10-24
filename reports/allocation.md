@@ -120,6 +120,95 @@ Segment-aware vs global KKT (continuous): 88,005 vs 75,331 expected saved (+16.8
 
 ![strategy vs budget](figures/strategy_vs_budget.png)
 
+## Calibration vs ranking on the test split (claim 1)
+
+Each probability source drives `segment_aware_kkt` at the same budget; the allocation is then scored by **realized** saved revenue, sum of y_i v_i a_i (1 - exp(-x_i / tau_i)), using the true churn labels (not any model's probability). Response parameters are the same assumed ones for every source. CIs are 90% bootstrap intervals (1000 resamples of test customers, spends held fixed). `diff_vs_base` is the paired difference against `p_rf_raw`.
+
+| source            |   pr_auc |   brier |    ece |   realized_saved |   ci_lo |    ci_hi |   diff_vs_base |   diff_lo |   diff_hi |   realized_saved_snapped |
+|:------------------|---------:|--------:|-------:|-----------------:|--------:|---------:|---------------:|----------:|----------:|-------------------------:|
+| p_rf_isotonic     |   0.6756 |  0.1018 | 0.0234 |          85659   | 62436.9 | 109817   |       1194.46  |  -5007.78 |   6718.41 |                  80962.5 |
+| p_rf_platt        |   0.7055 |  0.1016 | 0.0296 |          84979.2 | 62732.1 | 109474   |        514.649 |  -6136.6  |   6082.25 |                  82053.8 |
+| p_rf_raw          |   0.7055 |  0.1043 | 0.0396 |          84464.5 | 62467.3 | 109440   |          0     |      0    |      0    |                  81243.5 |
+| p_rf_smote_raw    |   0.6812 |  0.1227 | 0.1188 |          81456.7 | 59783.5 | 105079   |      -3007.84  | -15735.2  |   9724.88 |                  74696   |
+| p_naive_bayes_raw |   0.4316 |  0.1569 | 0.0971 |          73933.6 | 54869.9 |  96358.2 |     -10530.9   | -32380.9  |  12419.9  |                  57336.1 |
+| p_xgboost_raw     |   0.7099 |  0.1015 | 0.0245 |          88426.5 | 64709.6 | 114302   |       3961.95  | -11729.4  |  19273.2  |                  81583.1 |
+
+Spearman correlation with realized saved revenue (n = 6; no significance claimed): ECE -0.89, Brier -0.94, PR-AUC +0.64.
+
+![calibration vs ranking](figures/calibration_vs_ranking.png)
+
+**Reading.**
+- Paired differences against `p_rf_raw` all have intervals containing zero: True. The data cannot separate the sources on realized savings.
+- ECE and Brier correlate with realized saved revenue more strongly than PR-AUC does: True. With six points this is suggestive only, and Brier mixes ranking and calibration, so it cannot isolate calibration.
+- The deliberately miscalibrated RF+SMOTE (ECE 0.119 vs 0.040) changes realized savings by -3,008 relative to RF raw (paired CI [-15,735, 9,725]).
+- Naive Bayes changes realized savings by -10,531 but also ranks much worse (PR-AUC 0.43 vs 0.71), so its loss cannot be attributed to calibration.
+- Why calibration has little room to matter here: when the budget binds, the KKT spend is x_i = tau_i ln(p_i a_i / (t_g lambda)). Multiplying every p_i by a constant is absorbed by lambda, so a pure scale error (Platt or raw vs isotonic of the same ranking) changes nothing; only distortions that change the relative p across customers matter, and those are ranking effects. Calibration would matter more for decisions about *whether* to spend at all (a fixed ROI threshold), which a fixed-budget allocation does not make.
+
+## Sensitivity: +-25% and +-50% on every a_g and t_g (Phase 8.5)
+
+Each of the 24 group parameters of a and of t is varied one at a time (-50, -25, +25, +50%), and all together (a, t, both); 204 scenarios. Two readings:
+
+- *misspecified*: the world is perturbed but every strategy plans with its nominal assumptions (our current beliefs). This is the informative robustness test.
+- *resolved*: the segment-aware solver is told the perturbed parameters. It is optimal under its own model, so staying first is nearly automatic; only the margin is informative.
+
+Misspecified: segment-aware is first in **204 of 204** scenarios and loses to global KKT in **0**; its margin over global KKT ranges +1.6% to +36.4% (nominal +16.8%). Resolved: first in 204 of 204, margin +10.2% to +45.6%.
+
+All-together scenarios (segment-aware vs global KKT, relative margin):
+
+| param   |   level |   misspecified_seg_vs_global |   resolved_seg_vs_global | first_misspecified   |
+|:--------|--------:|-----------------------------:|-------------------------:|:---------------------|
+| a       |   -0.5  |                       0.1682 |                   0.1682 | segment_aware_kkt    |
+| t       |   -0.5  |                       0.1173 |                   0.1341 | segment_aware_kkt    |
+| a+t     |   -0.5  |                       0.1173 |                   0.1341 | segment_aware_kkt    |
+| a       |   -0.25 |                       0.1682 |                   0.1682 | segment_aware_kkt    |
+| t       |   -0.25 |                       0.1504 |                   0.1526 | segment_aware_kkt    |
+| a+t     |   -0.25 |                       0.1504 |                   0.1526 | segment_aware_kkt    |
+| a       |    0.25 |                       0.1682 |                   0.1682 | segment_aware_kkt    |
+| t       |    0.25 |                       0.1794 |                   0.1806 | segment_aware_kkt    |
+| a+t     |    0.25 |                       0.1794 |                   0.1806 | segment_aware_kkt    |
+| a       |    0.5  |                       0.1682 |                   0.1682 | segment_aware_kkt    |
+| t       |    0.5  |                       0.1871 |                   0.1906 | segment_aware_kkt    |
+| a+t     |    0.5  |                       0.1871 |                   0.1906 | segment_aware_kkt    |
+
+One-at-a-time scenarios aggregated over the 24 groups (misspecified margin, min / mean / max):
+
+| param   |   level |    min |   mean |    max |
+|:--------|--------:|-------:|-------:|-------:|
+| a       |   -0.5  | 0.021  | 0.1686 | 0.2681 |
+| a       |   -0.25 | 0.0964 | 0.1683 | 0.2161 |
+| a       |    0.25 | 0.124  | 0.1683 | 0.2369 |
+| a       |    0.5  | 0.0829 | 0.1685 | 0.3025 |
+| t       |   -0.5  | 0.0159 | 0.1654 | 0.3643 |
+| t       |   -0.25 | 0.1118 | 0.1674 | 0.2434 |
+| t       |    0.25 | 0.1174 | 0.1687 | 0.2055 |
+| t       |    0.5  | 0.0808 | 0.1689 | 0.2319 |
+
+![sensitivity heatmap](figures/sensitivity_heatmap.png)
+
+**Stress test outside the requested grid** (assumed heterogeneity exactly backwards: a_g mirrored around the global a, and/or the tier ratio t_g / t inverted):
+
+| param               |   seg_vs_global | first                 |
+|:--------------------|----------------:|:----------------------|
+| reverse_a           |          0.0059 | segment_aware_kkt     |
+| reverse_t           |         -0.1982 | top_k_revenue_at_risk |
+| reverse_a+reverse_t |         -0.3234 | top_k_revenue_at_risk |
+
+Reading: within +-50% perturbations the segment-aware plan keeps its lead because the *direction* of the assumed heterogeneity is unchanged. If the direction itself is wrong (tier effect on t reversed) it falls behind global KKT. The advantage rests on the assumed ordering of segments and tiers, which this data cannot verify.
+
+## Reallocation rounds vs one-shot (6 monthly rounds, 200 seeds)
+
+Simulation on the test split (see `src/churn/allocate/rounds.py` for assumptions): the horizon churn probability is split into per-round hazards; each round solves the incremental KKT problem on the remaining customers with pool / (rounds left); churned and saved customers leave and their unspent share stays in the pool; offer effects depend on cumulative spend and persist. One-shot allocates the same total budget up front.
+
+| | mean saved | 90% interval |
+|---|---:|---|
+| rounds | 57,975 | [0, 189,328] |
+| one-shot | 85,872 | [0, 214,839] |
+| paired difference (rounds - one-shot) | -27,896 (SE 6,722) | [-183,282, 99,523] |
+
+Rounds beat one-shot in 38% of seeds. Mean spend: rounds 15,000, one-shot 15,000; the largest total over any run was 15,000.00 against a budget of 15,000.
+
+Reading: in this model rounds do **not** beat a single up-front allocation. Only 1/6 of the budget is available in round 1, so customers are protected later, after some have already churned, while the benefit of re-allocating money away from removed customers is small (only a few percent of customers leave per round). Single-seed outcomes are very noisy (each saved customer is worth ~100k), hence the wide per-seed intervals; the mean difference is 4.2 standard errors from zero. Rounds would pay off if the offer effect expired each round or if risk scores were refreshed with new information, neither of which is modelled.
+
 ## Production plan and offer matching (stage 2)
 
 Portfolio budget 100,000 EUR on all customers: 544 targeted, 99,811 spent. Continuous KKT would save 600,757; after snapping to the catalog (re-balanced in 31 rounds, effective stage-1 budget 156,005) it saves 567,354.
@@ -136,20 +225,6 @@ Portfolio budget 100,000 EUR on all customers: 544 targeted, 99,811 spent. Conti
 
 - KKT objective (continuous spend): 600,757
 - Dual-ascent objective: 600,591 (gap 0.028%)
-
-## Sensitivity (interim +-30%; rebuilt in Phase 8.5)
-
-| scenario   |   a_factor |   tau_factor |   expected_revenue_saved |
-|:-----------|-----------:|-------------:|-------------------------:|
-| base       |        1   |          1   |                   600757 |
-| a_low      |        0.7 |          1   |                   420530 |
-| a_high     |        1.3 |          1   |                   780985 |
-| tau_low    |        1   |          0.7 |                   832060 |
-| tau_high   |        1   |          1.3 |                   471520 |
-
-## Calibrated vs uncalibrated (interim, circular; replaced in Phase 8.4)
-
-Both allocations are scored with the calibrated probabilities, so calibrated wins by construction (600,757 vs 597,945). This does not test claim 1.
 
 ## Assumptions
 - Response curves and offer costs/eligibility are assumptions, not measured uplift.

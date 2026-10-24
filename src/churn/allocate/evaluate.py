@@ -53,3 +53,11 @@ def load_eval_problem(cfg: dict, split: str = "test") -> tuple[Problem, np.ndarr
     frame = sc.assign(segment_id=seg_ids, value_tier=tiers, segment_name=s["segment_name"].to_numpy(),
                       engagement_class=eng)
     return pr, sc["churned"].to_numpy(int), frame, budget_scale(len(sc), n_all)
+
+
+def load_test_probs(cfg: dict, frame: pd.DataFrame) -> dict[str, np.ndarray]:
+    """Probability sources from artifacts/test_probs.parquet, aligned to the frame's rows."""
+    tp = pd.read_parquet(ROOT / cfg["paths"]["test_probs"])
+    tp = tp.assign(customer_id=tp["customer_id"].astype(str)).set_index("customer_id")
+    tp = tp.loc[frame["customer_id"].astype(str)]
+    return {c: tp[c].to_numpy(float) for c in cfg["allocation"]["calibration_sources"]}

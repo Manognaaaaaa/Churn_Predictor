@@ -14,6 +14,11 @@ Customers who churn are cheaper to keep than to replace, but retention budgets a
 1. **Calibration matters more than ranking when churn scores drive spending.** A model with high AUC but miscalibrated probabilities misallocates budget.
 2. **Segment-aware allocation beats uniform discounting at equal budget.**
 
+Both are tested in Step 8 on the held-out test split, scored with true labels where that matters (`reports/allocation.md`, `make claims`). Verdicts, from the numbers:
+
+- **Claim 1: not supported by this data.** Six probability sources (RF raw / isotonic / Platt, a deliberately miscalibrated RF+SMOTE, Naive Bayes, XGBoost) each drive the same allocator; realized saved revenue uses the actual churn labels. Paired bootstrap CIs against RF raw all contain zero. ECE and Brier rank-correlate with realized savings more than PR-AUC does (Spearman -0.89 / -0.94 vs +0.64) but n = 6 and Brier also contains ranking quality, so this is suggestive only. A structural reason: with a binding budget, rescaling all probabilities is absorbed by the Lagrange multiplier, so only distortions that reorder customers matter.
+- **Claim 2: true against uniform, weaker against the fair baseline.** Segment-aware KKT saves about 5x uniform at equal budget. Against `global_kkt` (same solver, one global response curve) it saves +16.8% in expected terms, but that is partly by construction because the evaluation model contains the segment parameters; with true labels the realized difference is +12k with a 90% CI of [-10k, +35k], and after offer snapping the expected margin shrinks to about 6%, level with simple `top_k_risk`. The lead survives all 204 +-25/50% perturbations of the response parameters but disappears if the assumed tier effect is reversed. The response curves are assumptions, not measured uplift.
+
 ## Architecture
 
 ```mermaid
@@ -42,12 +47,14 @@ flowchart LR
 | 5 | Revenue risk + forecast + segments | Revenue at risk = P(churn) × customer value. ARIMA vs moving-average baseline. GMM segments chosen by BIC, crossed with value tiers. | 4 (ARIMA needs only 2) | forecast, segments | TBD | ✅ |
 | 6 | Budget allocation | Lagrangian/KKT solver + gradient-descent check, offer matching per segment, reallocation loop. Strategy comparison, sensitivity analysis, calibrated vs uncalibrated test. | 4, 5 (solver can use mock data) | `allocations.parquet`, allocation report | TBD | ✅ |
 | 7 | App + ship | FastAPI endpoints + React dashboard (Overview, Client Lookup, Budget Planner, Model & Data). Tests + CI, Docker, deploy, final report. | 6 (can start on mock data after 1) | live app, docs | TBD | ✅ |
+| 8 | Make the claims testable | Segment-aware response curves per segment x value tier, offer catalog and two-stage matching, six strategies on the test split, label-based calibration test with bootstrap CIs, sensitivity (+-25/50%), reallocation rounds, API strategies + sweep. | 4, 5, 6 | `allocation_summary.json`, `reports/allocation.md` | TBD | ✅ |
+| 9 | Real time series for ARIMA | Replace the synthetic revenue history with a real dated series; ARIMA done properly (stationarity, ACF/PACF, AIC grid, residual checks, rolling-origin backtest). | 5, 8 | `forecast.parquet`, time-series report | TBD | ⬜ |
 
 **Status legend:** ⬜ not started · 🟨 in progress · ✅ done
 
 Owners update this table in their PRs.
 
-**Implementation notes (steps 2–7 complete):** the datasets have no timestamps, so splits are stratified 70/15/15 with stratified k-fold CV instead of time-based windows (recorded in `configs/config.yaml` and `reports/model_card.md`). All other leakage rules hold — transformers, PCA and calibration are fit on train/valid only.
+**Implementation notes (steps 2–8 complete; step 9 pending):** the datasets have no timestamps, so splits are stratified 70/15/15 with stratified k-fold CV instead of time-based windows (recorded in `configs/config.yaml` and `reports/model_card.md`). All other leakage rules hold — transformers, PCA and calibration are fit on train/valid only.
 
 ## Syllabus coverage
 
@@ -112,12 +119,13 @@ pip install -r requirements.txt
 | `make train` | step 4 |
 | `make risk` | step 5 |
 | `make allocate` | step 6 |
+| `make claims` | step 8 |
 | `make api`, `make web` | step 7 |
 
 To run the app end to end:
 
 ```bash
-make data && make features && make train && make risk && make allocate
+make data && make features && make train && make risk && make allocate && make claims
 make api      # FastAPI on http://localhost:8000 (falls back to artifacts/mock/ if empty)
 make web      # React dashboard on http://localhost:5173, proxies API calls to :8000
 ```
@@ -151,19 +159,23 @@ Held-out test with isotonic calibration: PR-AUC 0.6756, Brier 0.1018, ECE 0.0234
 
 **Portfolio snapshot:** 208.1M revenue at risk; risk bands 7,151 green / 1,617 amber / 1,232 red; ARIMA(1,1,1) forecast backtest MAE 547,720 vs 685,324 for the moving-average baseline.
 
-**Strategy comparison (equal 100k budget):**
+**Strategy comparison (test split, 1,500 customers, budget 15,000 = 100k x population share; expected revenue saved under the segment-aware response model, continuous spend / after offer snapping):**
 
-| Strategy | Spend | Expected revenue saved | Customers targeted |
+| Strategy | Continuous | Snapped | Realized (true labels, continuous) |
 |---|---|---|---|
-| Segment-aware (KKT) | 100,000 | **582,595** | 319 |
-| Risk-proportional | 100,000 | 345,105 | 7,704 |
-| Uniform | 100,000 | 121,414 | 10,000 |
+| Segment-aware KKT | **88,005** | **82,423** | 85,659 |
+| Global KKT (one response curve) | 75,331 | 77,772 | 73,606 |
+| Top-k by risk | 75,942 | 78,113 | 73,990 |
+| Top-k by revenue at risk | 59,802 | 60,196 | 57,840 |
+| Risk-proportional | 41,647 | 43,753 | 40,377 |
+| Uniform | 17,704 | 8,875 | 17,815 |
 
-Allocating on calibrated instead of raw scores saves 3,022 more at equal spend — a small gap here because isotonic calibration is rank-preserving; see `reports/allocation.md` for the sensitivity analysis.
+Segment-aware vs global KKT: +16.8% expected, realized difference +12,053 with 90% bootstrap CI [-9,739, +34,953] (includes zero). Calibration test (realized saved revenue, 90% CI): XGBoost 88,426 [64,710, 114,302]; RF isotonic 85,659; RF Platt 84,979; RF raw 84,465; RF+SMOTE (ECE 0.119) 81,457; Naive Bayes 73,934, all within overlapping intervals. Reallocation rounds (6 months, 200 seeds) save 57,975 on average vs 85,872 for one up-front allocation: rounds are worse in this model. See `reports/allocation.md`.
 
 ## Limitations
 
-- Offer response curves are assumptions, not measured uplift; see sensitivity analysis in step 6.
+- Offer response curves (per-group response ceiling `a_g` and saturation `t_g`), offer costs and offer eligibility are assumptions, not measured uplift: there is no treatment data. The segment-aware advantage rests on the assumed ordering of segments and tiers (reversing the tier effect makes it lose to a global curve); see the sensitivity section of `reports/allocation.md`.
+- The GMM segments differ only modestly in engagement, so the derived response multipliers vary about +-15%.
 - Churn is defined on static bank snapshots: the datasets carry no timestamps, so there is no true temporal validation and the LSTM consumes jittered synthetic sequences.
 - `customer_value` is EstimatedSalary (an income proxy), not observed revenue; calibration is fit on a single validation split and drift is not monitored.
 

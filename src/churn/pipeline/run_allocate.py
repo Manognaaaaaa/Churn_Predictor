@@ -21,7 +21,6 @@ def main() -> None:
     scores = pd.read_parquet(artifacts / "scores.parquet")
     seg = pd.read_parquet(artifacts / "segments.parquet")
     p_cal = scores["p_churn_calibrated"].to_numpy(float)
-    p_raw = scores["p_churn_raw"].to_numpy(float)
     v = (scores["customer_value"].to_numpy(float) if "customer_value" in scores
          else scores["revenue_at_risk"].to_numpy(float) / np.maximum(p_cal, 1e-9))
     budget = float(cfg["budget"]["total"])
@@ -61,12 +60,13 @@ def main() -> None:
         if s[i] <= 0:
             continue
         offer = offer_arr[i]
-        reason = (f"Band {band_arr[i]}, {seg_name_arr[i]} "
-                  f"({tier_arr[i]} value): "
-                  f"spend {s[i]:,.0f} to protect {saved[i]:,.0f} at risk")
+        reason = (f"{gp.explain_group(table, int(seg_id_arr[i]), tier_arr[i], cfg)}. "
+                  f"{offer} ({s[i]:,.0f}) protects {saved[i]:,.0f} of "
+                  f"{p_cal[i] * v[i]:,.0f} at risk")
         rows.append({
             "customer_id": cid_arr[i],
             "segment_id": int(seg_id_arr[i]),
+            "segment_name": seg_name_arr[i],
             "value_tier": tier_arr[i],
             "offer": offer,
             "spend": float(s[i]),
@@ -88,16 +88,10 @@ def main() -> None:
     fcst = pd.concat([fcst, alt], ignore_index=True)
     fcst.to_parquet(artifacts / "forecast.parquet", index=False)
 
-    # ---- sensitivity + calibrated vs uncalibrated (README claim 1)
-    sens = sv.sensitivity(p_cal, v, a, tau, budget, cap)
-    cvu = sv.calibrated_vs_uncalibrated(p_cal, p_raw, v, a, tau, budget, cap)
-
     report = {
         "budget": budget, "currency": cfg["budget"]["currency"],
         "gradient_check": {"kkt_objective": float(saved_cont.sum()), "gradient_objective": grad_saved,
                            "rel_gap": rel_gap},
-        "sensitivity": sens,
-        "calibrated_vs_uncalibrated": cvu,
         "allocated_customers": int(len(alloc)),
         "offer_snapping": {
             "continuous_saved": float(saved_cont.sum()), "snapped_saved": float(saved.sum()),
@@ -117,7 +111,6 @@ def main() -> None:
 
     print(f"allocations.parquet: {len(alloc)} rows, spent {alloc['spend'].sum():,.0f}, "
           f"expected saved {alloc['expected_revenue_saved'].sum():,.0f}")
-    print(f"uncalibrated misallocation cost: {cvu['misallocation_cost']:,.0f}")
 
 
 if __name__ == "__main__":

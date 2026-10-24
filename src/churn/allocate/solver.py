@@ -24,20 +24,25 @@ def kkt_allocate(p: np.ndarray, v: np.ndarray, a: np.ndarray, tau: np.ndarray,
                  budget: float, cap: float) -> np.ndarray:
     """Closed-form KKT spend x_i(lam) = clip(tau_i ln(b_i / (tau_i lam)), 0, cap), lam by bisection.
 
-    a, tau are per-customer arrays (a_i = a_g, tau_i = t_g * v_i). Total spend is monotone
+    a, tau (and optionally cap) are per-customer arrays (a_i = a_g, tau_i = t_g * v_i).
+    Total spend is monotone
     decreasing in lam, so bisection finds the lam where it equals the budget.
     """
     b, tau = _b(p, v, a), np.asarray(tau, float)
-    B = min(budget, cap * len(b))
+    cap_arr = np.broadcast_to(np.asarray(cap, float), b.shape)   # scalar or per-customer cap
+    B = min(budget, float(cap_arr.sum()))
+    if len(b) == 0 or b.max() <= 0 or B <= 0:
+        return np.zeros(len(b))
 
-    def spend(lam: float) -> np.ndarray:
-        with np.errstate(divide="ignore", invalid="ignore"):
-            s = tau * np.log(np.maximum(b, 1e-300) / (tau * lam))
-        return np.clip(np.nan_to_num(s, nan=0.0, neginf=0.0), 0.0, cap)
+    log_ratio = np.log(np.maximum(b, 1e-300) / tau)         # ln(b_i / tau_i), reused every step
 
-    lo, hi = 1e-300, float((b / tau).max()) * (1 + 1e-9)   # at hi every x_i = 0
-    for _ in range(300):
-        mid = np.sqrt(lo * hi)                              # bisect in log space
+    def spend(log_lam: float) -> np.ndarray:
+        return np.clip(tau * (log_ratio - log_lam), 0.0, cap_arr)
+
+    lo = float((log_ratio - cap_arr / tau).min()) - 1.0       # lo: every x_i at its cap
+    hi = float(log_ratio.max()) + 1e-9                        # hi: every x_i = 0
+    for _ in range(100):                                    # bisect on ln(lambda)
+        mid = 0.5 * (lo + hi)
         if spend(mid).sum() > B:
             lo = mid
         else:
@@ -72,30 +77,3 @@ def expected_saved(x: np.ndarray, p: np.ndarray, v: np.ndarray, a: np.ndarray,
                    tau: np.ndarray) -> np.ndarray:
     """Per-customer expected saved revenue r_i(x_i) = p v a (1 - exp(-x/tau))."""
     return _b(p, v, a) * (1 - np.exp(-np.asarray(x, float) / np.asarray(tau, float)))
-
-
-def sensitivity(p: np.ndarray, v: np.ndarray, a: np.ndarray, tau: np.ndarray,
-                budget: float, cap: float, perturb: float = 0.30) -> list[dict]:
-    """Interim ±perturb sensitivity on a and tau (rewritten in Phase 8.5)."""
-    rows = []
-    for label, (fa, ft) in {"base": (1.0, 1.0), "a_low": (1 - perturb, 1.0),
-                            "a_high": (1 + perturb, 1.0), "tau_low": (1.0, 1 - perturb),
-                            "tau_high": (1.0, 1 + perturb)}.items():
-        x = kkt_allocate(p, v, a * fa, tau * ft, budget, cap)
-        rows.append({"scenario": label, "a_factor": fa, "tau_factor": ft,
-                     "expected_revenue_saved":
-                         float(expected_saved(x, p, v, a * fa, tau * ft).sum())})
-    return rows
-
-
-def calibrated_vs_uncalibrated(p_cal: np.ndarray, p_raw: np.ndarray, v: np.ndarray,
-                               a: np.ndarray, tau: np.ndarray, budget: float,
-                               cap: float) -> dict:
-    """Interim (circular: scores both with p_cal). Replaced by the label-based test in 8.4."""
-    x_cal = kkt_allocate(p_cal, v, a, tau, budget, cap)
-    x_raw = kkt_allocate(p_raw, v, a, tau, budget, cap)
-    truth_cal = expected_saved(x_cal, p_cal, v, a, tau).sum()
-    truth_raw = expected_saved(x_raw, p_cal, v, a, tau).sum()
-    return {"saved_calibrated_allocation": float(truth_cal),
-            "saved_uncalibrated_allocation": float(truth_raw),
-            "misallocation_cost": float(truth_cal - truth_raw)}

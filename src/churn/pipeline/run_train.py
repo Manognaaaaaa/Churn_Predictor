@@ -20,6 +20,7 @@ from churn.models import calibrate as cal
 from churn.models.explain import top_drivers
 from churn.models.lstm import predict_lstm, train_lstm
 from churn.models.metrics import brier, calibration_curve, cost_threshold, ece, pr_auc
+from churn.models.test_probs import build_test_probs, fit_rf_smote
 
 TARGET = "churned"
 META_COLS = ["customer_id", "churned", "snapshot_date", "split", "customer_value_raw"]
@@ -152,8 +153,25 @@ def main() -> None:
         "risk_band": bands,
         "revenue_at_risk": p_cal * raw_value,
         "top_drivers": drivers,
+        "split": feats["split"].to_numpy(),
+        "churned": feats[TARGET].to_numpy(int),
     })
     scores.to_parquet(artifacts / "scores.parquet", index=False)
+
+    # Step 8: test-split probabilities for every model + RF calibrators + SMOTE-RF variant.
+    # Calibrators and the SMOTE model are fit on train/valid only; test is only scored.
+    raw_test = {k: (predict_lstm(f[1], X_te, f[2], lstm_cfg["seq_len"]) if k == "lstm"
+                    else f.predict_proba(X_te)[:, 1]) for k, f in fitted.items()}
+    rf_smote = fit_rf_smote(X_tr, y_tr, cfg)
+    p_smote_va, p_smote_te = rf_smote.predict_proba(X_va)[:, 1], rf_smote.predict_proba(X_te)[:, 1]
+    test_probs = build_test_probs(te[["customer_id", TARGET, "customer_value_raw"]], raw_test,
+                                  (fitted["random_forest"].predict_proba(X_va)[:, 1], y_va),
+                                  raw_test["random_forest"], p_smote_te)
+    test_probs = test_probs.rename(columns={TARGET: "churned"})
+    test_probs.to_parquet(ROOT / cfg["paths"]["test_probs"], index=False)
+    smote_variant = {"valid_ece": ece(y_va, p_smote_va, bins), "test_ece": ece(y_te, p_smote_te, bins),
+                     "test_brier": brier(y_te, p_smote_te), "test_pr_auc": pr_auc(y_te, p_smote_te),
+                     "rf_raw_test_ece": ece(y_te, raw_test["random_forest"], bins)}
 
     joblib.dump({
         "model_name": best_name,
@@ -175,6 +193,7 @@ def main() -> None:
         "test": test_metrics,
         "calibration_curve": calibration_curve(y_te, p_cal[te_mask]),
         "imbalance_strategy": strategy,
+        "rf_smote_variant": smote_variant,
     }
     (artifacts / "metrics.json").write_text(json.dumps(metrics, indent=2, default=float))
 
@@ -192,6 +211,10 @@ def main() -> None:
              f"-> {thr['n_flagged']} customers flagged on valid "
              f"(expected cost {thr['cost']:,.0f})", "",
              "## Test metrics", "", pd.Series(test_metrics).round(4).to_markdown(), "",
+             "## Deliberately miscalibrated variant (Step 8)", "",
+             "Random Forest trained on SMOTE-resampled train rows only; used to test the "
+             "calibration claim (artifacts/test_probs.parquet).", "",
+             pd.Series(smote_variant).round(4).to_markdown(), "",
              "## Known limitations",
              "- LSTM consumes synthetic jittered sequences (dataset has no time axis).",
              "- `customer_value` is EstimatedSalary (income proxy), not true revenue.",
@@ -204,7 +227,9 @@ def main() -> None:
     print(f"test: PR-AUC(cal) {test_metrics['pr_auc_calibrated']:.4f} "
           f"Brier(cal) {test_metrics['brier_calibrated']:.4f} "
           f"ECE(cal) {test_metrics['ece_calibrated']:.4f}")
-    print(f"scores.parquet: {len(scores)} rows")
+    print(f"scores.parquet: {len(scores)} rows | test_probs.parquet: {len(test_probs)} rows")
+    print(f"RF+SMOTE test ECE {smote_variant['test_ece']:.4f} "
+          f"(RF raw {smote_variant['rf_raw_test_ece']:.4f})")
 
 
 if __name__ == "__main__":

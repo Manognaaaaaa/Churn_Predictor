@@ -12,7 +12,7 @@ Imbalance strategy: **none** (CV comparison in artifacts/imbalance.json)
 | logreg_map    |         0.5541 |        0.1264 |      0.0235 |    nan      |
 | naive_bayes   |         0.4584 |        0.1526 |      0.0937 |    nan      |
 | random_forest |         0.7224 |        0.1011 |      0.0473 |      0.6702 |
-| xgboost       |         0.7183 |        0.099  |      0.0159 |    nan      |
+| xgboost       |         0.718  |        0.099  |      0.016  |    nan      |
 | lstm          |         0.672  |        0.1087 |      0.0344 |    nan      |
 
 Chosen by valid PR-AUC: **random_forest** (CV PR-AUC 0.6702)
@@ -31,6 +31,18 @@ Cost-based threshold: 0.060 -> 1061 customers flagged on valid (expected cost 34
 | brier_calibrated  | 0.1018 |
 | ece_raw           | 0.0396 |
 | ece_calibrated    | 0.0234 |
+
+## Deliberately miscalibrated variant (Step 8)
+
+Random Forest trained on SMOTE-resampled train rows only; used to test the calibration claim (artifacts/test_probs.parquet).
+
+|                 |      0 |
+|:----------------|-------:|
+| valid_ece       | 0.1202 |
+| test_ece        | 0.1188 |
+| test_brier      | 0.1227 |
+| test_pr_auc     | 0.6812 |
+| rf_raw_test_ece | 0.0396 |
 
 ## Known limitations
 - LSTM consumes synthetic jittered sequences (dataset has no time axis).

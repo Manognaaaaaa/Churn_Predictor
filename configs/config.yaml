@@ -13,6 +13,7 @@ paths:
   processed: data/processed
   artifacts: artifacts
   reports: reports
+  test_probs: artifacts/test_probs.parquet   # Step 8: per-model test-split probabilities
 
 datasets:
   churn_modelling:

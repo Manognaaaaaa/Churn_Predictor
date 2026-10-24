@@ -93,6 +93,7 @@ Owners update this table in their PRs.
 ├── scripts/                       # helpers, e.g. make_mocks.py
 ├── tests/                         # pytest
 ├── docs/contracts.md              # data and API contracts (v0)
+├── docs/*.md                      # response-curve rule and KKT derivation (rendered into reports/allocation.md)
 ├── requirements.txt
 ├── Makefile
 └── README.md
@@ -110,6 +111,7 @@ pip install -r requirements.txt
 
 - Put the raw datasets in `data/raw/` (gitignored). Used here: `Churn_Modelling.csv` (10,000 customers, primary) and `Telco_customer_churn.xlsx` (7,043 rows, secondary); `configs/config.yaml` maps each schema and `active_dataset` picks one.
 - `make help` lists all targets.
+- Step 8 outputs: `make claims` (after `make allocate`) writes `artifacts/allocation_summary.json`, `artifacts/claims_*.json`, three figures in `reports/figures/`, and regenerates `reports/allocation.md`. Run `make train` once first so `scores.parquet` carries `split`, `churned`, `customer_value` and `test_probs.parquet` exists.
 - `make mocks` writes fake artifacts to `artifacts/mock/` so the app track can start early.
 
 | Command | Available from |
@@ -135,7 +137,7 @@ The web target needs Node 18+. `make mocks` generates placeholder artifacts so t
 ## Ground rules
 
 - All ML and business logic lives in `src/churn/`. The API only validates and calls. React only displays.
-- No leakage: transformers, PCA and SMOTE fit on the training window only. Splits are time-based, never random shuffles.
+- No leakage: transformers, PCA and SMOTE fit on the training window only. Splits are stratified (the datasets carry no timestamps), and the test split is touched only for final reporting.
 - All thresholds, dates, seeds and budgets live in `configs/config.yaml`.
 - Each step writes outputs to `artifacts/` or `reports/`. Downstream steps read files and never retrain.
 - Work on branches named `step-N-short-name`, open a PR, and the other person reviews.

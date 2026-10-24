@@ -153,6 +153,7 @@ def main() -> None:
         "risk_band": bands,
         "revenue_at_risk": p_cal * raw_value,
         "top_drivers": drivers,
+        "customer_value": raw_value,
         "split": feats["split"].to_numpy(),
         "churned": feats[TARGET].to_numpy(int),
     })

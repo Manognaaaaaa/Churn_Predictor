@@ -2,8 +2,7 @@ import numpy as np
 import pytest
 
 from churn.allocate.solver import (calibrated_vs_uncalibrated, expected_saved,
-                                   gradient_check, kkt_allocate, match_offer,
-                                   strategy_comparison)
+                                   gradient_check, kkt_allocate, strategy_comparison)
 
 
 @pytest.fixture
@@ -67,9 +66,3 @@ def test_calibrated_vs_uncalibrated_interim_runs(data):
     out = calibrated_vs_uncalibrated(p_cal, p_raw, v, a, tau, 40_000.0, 500.0)
     assert set(out) == {"saved_calibrated_allocation", "saved_uncalibrated_allocation",
                         "misallocation_cost"}
-
-
-def test_match_offer_picks_nearest():
-    assert match_offer(10_000.0, 100_000.0) == "discount_10"   # 10% of 100k
-    assert match_offer(100.0, 100_000.0) == "service_call"
-    assert match_offer(5.0, 100_000.0) == "loyalty_email"

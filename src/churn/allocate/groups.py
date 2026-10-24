@@ -30,7 +30,8 @@ def build_group_table(seg: pd.DataFrame, feats: pd.DataFrame, cfg: dict) -> pd.D
     seg: customer_id, segment_id, value_tier. feats: features.parquet (needs split + the
     engagement features). Segment profiles use the train split only.
     """
-    rc = cfg["allocation"]["response_curves"]
+    rc = dict(cfg["allocation"]["response_curves"])
+    rc["engagement_split"] = cfg["allocation"]["engagement_split"]
     tiers = list(cfg["segmentation"]["value_tiers"])
     train = feats[feats["split"] == "train"].copy()
     train["customer_id"] = train["customer_id"].astype(str)
@@ -47,11 +48,20 @@ def build_group_table(seg: pd.DataFrame, feats: pd.DataFrame, cfg: dict) -> pd.D
         for tier in tiers:
             rows.append({"segment_id": int(sid), "value_tier": tier,
                          "engagement": float(e[sid]),
+                         "engagement_class": "high" if e[sid] > rc.get("engagement_split", 0.0)
+                         else "low",
                          "m_seg": float(m_seg[sid]), "m_tier": m_tier[tier],
                          "n_seg": float(n_seg[sid]), "n_tier": n_tier[tier],
                          "a_g": float(rc["a"] * m_seg[sid] * m_tier[tier]),
                          "t_g": float(rc["t"] * n_seg[sid] * n_tier[tier])})
     return pd.DataFrame(rows)
+
+
+def customer_attr(seg_ids: np.ndarray, tiers: np.ndarray, table: pd.DataFrame,
+                  col: str) -> np.ndarray:
+    """Look up one group-table column (e.g. engagement_class) for every customer."""
+    idx = pd.MultiIndex.from_arrays([np.asarray(seg_ids), np.asarray(tiers)])
+    return table.set_index(["segment_id", "value_tier"])[col].reindex(idx).to_numpy()
 
 
 def customer_params(seg_ids: np.ndarray, tiers: np.ndarray, table: pd.DataFrame,

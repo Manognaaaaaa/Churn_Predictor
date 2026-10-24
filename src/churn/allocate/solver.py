@@ -15,13 +15,6 @@ from __future__ import annotations
 
 import numpy as np
 
-OFFER_CATALOG = {
-    "discount_10": {"cost_frac": 0.10, "flat": 0.0},    # 10% of customer value
-    "service_call": {"cost_frac": 0.0, "flat": 100.0},  # flat retention call
-    "loyalty_email": {"cost_frac": 0.0, "flat": 5.0},   # near-free touch
-}
-
-
 def _b(p: np.ndarray, v: np.ndarray, a: np.ndarray) -> np.ndarray:
     """Maximum saveable revenue per customer, b_i = p_i * v_i * a_i."""
     return np.asarray(p, float) * np.asarray(v, float) * np.asarray(a, float)
@@ -79,17 +72,6 @@ def expected_saved(x: np.ndarray, p: np.ndarray, v: np.ndarray, a: np.ndarray,
                    tau: np.ndarray) -> np.ndarray:
     """Per-customer expected saved revenue r_i(x_i) = p v a (1 - exp(-x/tau))."""
     return _b(p, v, a) * (1 - np.exp(-np.asarray(x, float) / np.asarray(tau, float)))
-
-
-def match_offer(spend: float, value: float) -> str:
-    """Pick the catalog offer whose cost is closest to the solved spend."""
-    best, best_gap = "loyalty_email", float("inf")
-    for name, o in OFFER_CATALOG.items():
-        cost = o["cost_frac"] * value + o["flat"]
-        gap = abs(cost - spend)
-        if gap < best_gap:
-            best, best_gap = name, gap
-    return best
 
 
 def strategy_comparison(p: np.ndarray, v: np.ndarray, a: np.ndarray, tau: np.ndarray,

@@ -117,3 +117,22 @@ allocation:
     # nothing suggests tiers differ in max response (a step 1.0).
     a_tier_step: 1.0
     t_tier_step: 1.25
+
+  # ---- offer catalog (Step 8.2) -----------------------------------------------------
+  # Stage 1 (KKT) decides spend x_i. Stage 2 picks, among the offers eligible for the customer's
+  # (engagement class, value tier) group whose cost <= max_spend_per_customer, the cheapest one with
+  # cost >= x_i (or the largest eligible one if none covers x_i). Spend is then the offer's real
+  # cost and the budget is re-balanced so total spend <= B.
+  # cost = flat + cost_frac * customer_value.  Costs and eligibility are assumptions (no uplift data).
+  # Rule of thumb: disengaged groups need a human touch (service call); engaged groups respond to
+  # money offers (retention bonus, value discount); cheap touches are open to everyone.
+  engagement_split: 0.0           # segment engagement index > split -> "high" class, else "low"
+  min_spend: 0.5                  # solved spend below this is treated as "not targeted"
+  rebalance_max_iter: 40          # budget re-balancing rounds after offer snapping
+  rebalance_tol: 0.001            # stop when snapped spend is within 0.1% of the budget
+  offers:
+    loyalty_email:   {flat: 5.0,   cost_frac: 0.0,   eligible: {tiers: [low, mid, high], engagement: [low, high]}}
+    fee_waiver:      {flat: 25.0,  cost_frac: 0.0,   eligible: {tiers: [low, mid, high], engagement: [low, high]}}
+    service_call:    {flat: 100.0, cost_frac: 0.0,   eligible: {tiers: [low, mid, high], engagement: [low]}}
+    retention_bonus: {flat: 250.0, cost_frac: 0.0,   eligible: {tiers: [mid, high],      engagement: [high]}}
+    value_discount:  {flat: 0.0,   cost_frac: 0.005, eligible: {tiers: [low, mid, high], engagement: [high]}}  # 0.5% of value

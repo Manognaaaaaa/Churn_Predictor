@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from api import artifacts
 from churn.allocate import groups as gp
+from churn.allocate import offers as of
 from churn.allocate import solver as sv
 from churn.config import load_config
 
@@ -34,16 +35,28 @@ def allocate(req: AllocateRequest):
     if table is not None:
         a, tau = gp.customer_params(seg_idx["segment_id"].to_numpy(),
                                     seg_idx["value_tier"].to_numpy(), table, v)
+        eng = gp.customer_attr(seg_idx["segment_id"].to_numpy(),
+                               seg_idx["value_tier"].to_numpy(), table, "engagement_class")
     else:                                  # mock artifacts: no group table -> global curve
         a, tau = gp.global_params(len(p), v, cfg)
+        eng = np.full(len(p), "low")
 
     if req.strategy == "segment_aware":
-        s = sv.kkt_allocate(p, v, a, tau, req.budget, cap)
+        def solve(b: float) -> np.ndarray:
+            return sv.kkt_allocate(p, v, a, tau, b, cap)
     elif req.strategy == "uniform":
-        s = np.full(len(p), min(req.budget / len(p), cap))
+        def solve(b: float) -> np.ndarray:
+            return np.full(len(p), min(b / len(p), cap))
     else:
         share = (v * p) / max((v * p).sum(), 1e-12)
-        s = np.minimum(share * req.budget, cap)
+
+        def solve(b: float) -> np.ndarray:
+            return np.minimum(share * b, cap)
+    acfg = cfg["allocation"]
+    snapped = of.allocate_with_offers(solve, v, seg_idx["value_tier"].to_numpy(), eng,
+                                      req.budget, cap, acfg["offers"], acfg["min_spend"],
+                                      acfg["rebalance_max_iter"], acfg["rebalance_tol"])
+    s, offers_arr = snapped["spend"], snapped["offer"]
 
     saved = sv.expected_saved(s, p, v, a, tau)
     seg = seg_idx
@@ -55,12 +68,12 @@ def allocate(req: AllocateRequest):
         "customer_id": cid[i],
         "segment_id": int(seg_id[i]),
         "value_tier": tier[i],
-        "offer": sv.match_offer(s[i], v[i]),
+        "offer": offers_arr[i],
         "spend": round(float(s[i]), 2),
         "expected_revenue_saved": round(float(saved[i]), 2),
         "reason": f"{tier[i]}-value customer, band {scores['risk_band'][i]}; "
                   f"spend {s[i]:,.0f} to protect {saved[i]:,.0f}",
-    } for i in np.argsort(-s) if s[i] > 0.5]
+    } for i in np.argsort(-s) if s[i] > 0]
 
     return {
         "budget": req.budget,

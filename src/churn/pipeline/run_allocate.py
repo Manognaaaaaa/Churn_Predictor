@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 
 from churn.allocate import groups as gp
+from churn.allocate import offers as of
 from churn.allocate import solver as sv
 from churn.config import ROOT, ensure_dirs, load_config
 
@@ -34,12 +35,20 @@ def main() -> None:
     # ---- strategy comparison at equal budget
     comp = sv.strategy_comparison(p_cal, v, a, tau, budget, cap)
 
-    # ---- chosen allocation: segment-aware KKT (README claim 2)
-    s = sv.kkt_allocate(p_cal, v, a, tau, budget, cap)
+    # ---- chosen allocation: segment-aware KKT (README claim 2), then offer snapping
+    acfg = cfg["allocation"]
+    x_cont = sv.kkt_allocate(p_cal, v, a, tau, budget, cap)
+    saved_cont = sv.expected_saved(x_cont, p_cal, v, a, tau)
+    tier_all = seg_idx["value_tier"].to_numpy()
+    eng_all = gp.customer_attr(seg_idx["segment_id"].to_numpy(), tier_all, table, "engagement_class")
+    snapped = of.allocate_with_offers(
+        lambda b: sv.kkt_allocate(p_cal, v, a, tau, b, cap), v, tier_all, eng_all, budget, cap,
+        acfg["offers"], acfg["min_spend"], acfg["rebalance_max_iter"], acfg["rebalance_tol"])
+    s, offer_arr = snapped["spend"], snapped["offer"]
     saved = sv.expected_saved(s, p_cal, v, a, tau)
     grad_s, grad_obj = sv.gradient_check(p_cal, v, a, tau, budget, cap)
     grad_saved = float(sv.expected_saved(grad_s, p_cal, v, a, tau).sum())
-    rel_gap = abs(grad_saved - float(saved.sum())) / float(saved.sum())
+    rel_gap = abs(grad_saved - float(saved_cont.sum())) / float(saved_cont.sum())
     tol = cfg["allocation"]["dual_check_tolerance"]
     assert rel_gap <= tol, f"KKT vs dual ascent gap {rel_gap:.4%} exceeds {tol:.1%}"
 
@@ -50,9 +59,9 @@ def main() -> None:
     cid_arr = scores["customer_id"].to_numpy()
     rows = []
     for i in range(len(scores)):
-        if s[i] <= 0.5:
+        if s[i] <= 0:
             continue
-        offer = sv.match_offer(s[i], v[i])
+        offer = offer_arr[i]
         reason = (f"Band {band_arr[i]}, {seg_name_arr[i]} "
                   f"({tier_arr[i]} value): "
                   f"spend {s[i]:,.0f} to protect {saved[i]:,.0f} at risk")
@@ -87,11 +96,16 @@ def main() -> None:
     report = {
         "budget": budget, "currency": cfg["budget"]["currency"],
         "strategy_comparison": comp,
-        "gradient_check": {"kkt_objective": float(saved.sum()), "gradient_objective": grad_saved,
+        "gradient_check": {"kkt_objective": float(saved_cont.sum()), "gradient_objective": grad_saved,
                            "rel_gap": rel_gap},
         "sensitivity": sens,
         "calibrated_vs_uncalibrated": cvu,
         "allocated_customers": int(len(alloc)),
+        "offer_snapping": {
+            "continuous_saved": float(saved_cont.sum()), "snapped_saved": float(saved.sum()),
+            "snapped_spend": float(s.sum()), "iterations": snapped["iterations"],
+            "effective_budget": snapped["effective_budget"], "dropped": snapped["dropped"],
+            "offer_counts": pd.Series(offer_arr[s > 0]).value_counts().to_dict()},
         "monthly_saved_uplift": monthly_saved,
         "assumptions": {
             "response_curve": "expected saved = p*v*a_g*(1-exp(-x/tau_i)), tau_i = t_g*v_i",
@@ -113,8 +127,15 @@ def main() -> None:
              f"expected {alloc['expected_revenue_saved'].sum():,.0f} saved", "",
              "## Strategy comparison (equal budget)", "",
              pd.DataFrame(comp).T.round(0).to_markdown(), "",
+             "## Offer matching (stage 2)", "",
+             f"Continuous KKT saves {saved_cont.sum():,.0f}; after snapping to the catalog "
+             f"(budget re-balanced in {snapped['iterations']} rounds, effective stage-1 budget "
+             f"{snapped['effective_budget']:,.0f}) the plan spends {s.sum():,.0f} and saves "
+             f"{saved.sum():,.0f}.", "",
+             pd.Series(offer_arr[s > 0]).value_counts().rename("customers").to_frame().to_markdown(),
+             "",
              "## KKT vs gradient check", "",
-             f"- KKT objective: {saved.sum():,.0f}",
+             f"- KKT objective (continuous spend): {saved_cont.sum():,.0f}",
              f"- Dual-ascent objective: {grad_saved:,.0f} (gap {rel_gap:.3%}, tolerance {tol:.1%})", "",
              "## Sensitivity (interim ±30%; rebuilt in Phase 8.5)", "",
              pd.DataFrame(sens).round(0).to_markdown(index=False), "",

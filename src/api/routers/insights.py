@@ -40,7 +40,8 @@ def forecast(scenario: str = Query("no_intervention",
                "lower": None if pd_isna(r.lower) else round(float(r.lower), 2),
                "upper": None if pd_isna(r.upper) else round(float(r.upper), 2)}
               for r in fc.itertuples()]
-    return {"scenario": scenario, "points": points}
+    meta = artifacts._forecast_meta()
+    return {"scenario": scenario, "freq": meta.get("freq", "MS"), "points": points}
 
 
 def pd_isna(x) -> bool:

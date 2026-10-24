@@ -47,6 +47,12 @@ def _forecast() -> pd.DataFrame:
 
 
 @lru_cache(maxsize=1)
+def _forecast_meta() -> dict:
+    path = artifacts_dir() / "forecast_meta.json"
+    return json.loads(path.read_text()) if path.exists() else {}
+
+
+@lru_cache(maxsize=1)
 def _metrics() -> dict:
     path = artifacts_dir() / "metrics.json"
     if path.exists():
@@ -63,7 +69,7 @@ def _risk_summary() -> dict:
 
 
 def reset_cache() -> None:
-    for fn in (_scores, _segments, _group_params, _allocations, _forecast, _metrics, _risk_summary):
+    for fn in (_scores, _segments, _group_params, _allocations, _forecast, _forecast_meta, _metrics, _risk_summary):
         fn.cache_clear()
 
 

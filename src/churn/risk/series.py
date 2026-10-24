@@ -10,6 +10,24 @@ from scipy import stats
 from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.stattools import adfuller
 
+from churn.config import ROOT
+
+
+def load_retail_raw(src: dict) -> pd.DataFrame:
+    """Invoice lines (Invoice, Quantity, InvoiceDate, Price) from the parquet cache or the xlsx sheets."""
+    cache = ROOT / src["cache"]
+    if cache.exists():
+        df = pd.read_parquet(cache)
+    else:
+        sheets = pd.read_excel(ROOT / src["path"], sheet_name=None,
+                               usecols=["Invoice", "Quantity", "InvoiceDate", "Price"])
+        df = pd.concat(sheets.values(), ignore_index=True)
+        df["Invoice"] = df["Invoice"].astype(str)
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        df.to_parquet(cache, index=False)
+    df["InvoiceDate"] = pd.to_datetime(df["InvoiceDate"])
+    return df
+
 
 def reconstruct_telco_revenue(tenure: np.ndarray, charge: np.ndarray, snapshot_month: str,
                               months: int, freq: str = "MS") -> pd.Series:
@@ -67,7 +85,7 @@ def describe_series(s: pd.Series, period: int, adf_regression: str = "c",
     """Points, ADF (level and first difference), linear trend, seasonal strength."""
     out = {"n": int(len(s)), "start": str(s.index[0].date()), "end": str(s.index[-1].date())}
     for name, x in (("level", s), ("diff1", s.diff().dropna())):
-        stat, p, lags, nobs, crit, _ = adfuller(x.to_numpy(), regression=adf_regression, autolag="AIC")
+        stat, p, lags, nobs, crit, _ = adfuller(x.to_numpy(), regression=adf_regression, autolag="AIC", result_object=False)
         out[f"adf_{name}"] = {"stat": float(stat), "p": float(p), "lags": int(lags),
                               "crit_5pct": float(crit["5%"])}
     t = np.arange(len(s))

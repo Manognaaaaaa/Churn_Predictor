@@ -18,19 +18,6 @@ from churn.config import ROOT, load_config
 from churn.risk import series as sr
 
 
-def _load_retail(cfg_src: dict) -> pd.DataFrame:
-    cache = ROOT / cfg_src["cache"]
-    if cache.exists():
-        return pd.read_parquet(cache)
-    sheets = pd.read_excel(ROOT / cfg_src["path"], sheet_name=None,
-                           usecols=["Invoice", "Quantity", "InvoiceDate", "Price"])
-    df = pd.concat(sheets.values(), ignore_index=True)
-    cache.parent.mkdir(parents=True, exist_ok=True)
-    df["Invoice"] = df["Invoice"].astype(str)
-    df.to_parquet(cache, index=False)
-    return df
-
-
 def _decomp_axes(axs, s: pd.Series, period: int, model: str, title: str) -> None:
     dec = seasonal_decompose(s, model=model, period=period)
     for ax, comp, lab in zip(axs, (dec.trend, dec.seasonal, dec.resid), ("trend", "seasonal", "residual")):
@@ -70,8 +57,7 @@ def main() -> None:
 
     # ---------------- Option B: Online Retail II
     rsrc = fc["sources"]["online_retail"]
-    raw = _load_retail(rsrc)
-    raw["InvoiceDate"] = pd.to_datetime(raw["InvoiceDate"])
+    raw = sr.load_retail_raw(rsrc)
     first, last = raw["InvoiceDate"].min(), raw["InvoiceDate"].max()
     sales = sr.clean_retail(raw, rsrc["drop_invoice_prefix"], rsrc["min_quantity"], rsrc["min_price"])
     b_w = sr.aggregate_retail(sales, "W-SUN", first, last)

@@ -41,7 +41,7 @@
 
 | Column | Type | Notes |
 |---|---|---|
-| month | date | month start |
+| month | date | period label: month start for monthly series, week-ending Sunday for weekly (see `freq`) |
 | actual | float | null for future months |
 | forecast | float | null for past months |
 | lower | float | interval lower bound |
@@ -105,6 +105,7 @@ Query: `scenario` (`no_intervention` / `with_allocation`).
 ```json
 {
   "scenario": "no_intervention",
+  "freq": "W-SUN",
   "points": [
     {"month": "2024-07-01", "actual": null, "forecast": 98500.0, "lower": 94500.0, "upper": 102500.0}
   ]

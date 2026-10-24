@@ -12,50 +12,61 @@ def data():
     n = 400
     p = rng.beta(2, 5, n)
     v = rng.lognormal(8, 0.5, n)
-    return p, v
+    a = rng.uniform(0.15, 0.45, n)                      # per-customer response ceiling
+    tau = rng.choice([0.04, 0.05, 0.0625], n) * v        # per-customer saturation
+    return p, v, a, tau
 
 
 def test_kkt_respects_budget_and_caps(data):
-    p, v = data
+    p, v, a, tau = data
     B, cap = 50_000.0, 500.0
-    s = kkt_allocate(p, v, B, cap)
-    assert s.sum() <= B + 1e-6
-    assert (s >= 0).all() and (s <= cap + 1e-6).all()
-    assert (s > 0).sum() > 0
+    x = kkt_allocate(p, v, a, tau, B, cap)
+    assert x.sum() <= B + 1e-6
+    assert (x >= 0).all() and (x <= cap + 1e-6).all()
+    assert (x > 0).sum() > 0
+    assert x.sum() == pytest.approx(B, rel=1e-6)         # budget binds here
 
 
 def test_kkt_targets_high_value_first(data):
-    p, v = data
-    B = 20_000.0
-    s = kkt_allocate(p, v, B, cap=500.0)
+    p, v, a, tau = data
+    x = kkt_allocate(p, v, a, tau, 20_000.0, cap=500.0)
     score = v * p
-    flagged = s > 0
-    # mean value*p among flagged should exceed population mean
-    assert score[flagged].mean() > score.mean()
+    assert score[x > 0].mean() > score.mean()
 
 
-def test_gradient_check_agrees(data):
-    p, v = data
+def test_kkt_stationarity_on_interior_customers(data):
+    p, v, a, tau = data
+    x = kkt_allocate(p, v, a, tau, 30_000.0, 500.0)
+    interior = (x > 1e-6) & (x < 500.0 - 1e-6)
+    marginal = (p * v * a / tau) * np.exp(-x / tau)
+    assert interior.sum() > 10
+    assert np.allclose(marginal[interior], marginal[interior][0], rtol=1e-6)
+
+
+def test_dual_ascent_agrees_with_kkt_within_half_percent(data):
+    p, v, a, tau = data
     B, cap = 30_000.0, 500.0
-    s_kkt = kkt_allocate(p, v, B, cap)
-    obj_kkt = expected_saved(s_kkt, p, v).sum()
-    _, obj_grad = gradient_check(p, v, B, cap, iters=2000)
-    assert obj_grad == pytest.approx(obj_kkt, rel=0.05)
+    obj_kkt = expected_saved(kkt_allocate(p, v, a, tau, B, cap), p, v, a, tau).sum()
+    _, obj_grad = gradient_check(p, v, a, tau, B, cap)
+    assert obj_grad == pytest.approx(obj_kkt, rel=0.005)
 
 
 def test_segment_aware_beats_uniform(data):
-    p, v = data
-    comp = strategy_comparison(p, v, 40_000.0, 500.0)
+    p, v, a, tau = data
+    comp = strategy_comparison(p, v, a, tau, 40_000.0, 500.0)
     assert comp["segment_aware_kkt"]["expected_revenue_saved"] > \
         comp["uniform"]["expected_revenue_saved"]
 
 
-def test_uncalibrated_never_beats_calibrated(data):
-    p_cal, v = data
+def test_calibrated_vs_uncalibrated_interim_runs(data):
+    # The old "uncalibrated never beats calibrated" assertion is gone: it held only because
+    # both allocations were scored with p_cal. The label-based test arrives in Phase 8.4.
+    p_cal, v, a, tau = data
     rng = np.random.default_rng(1)
     p_raw = np.clip(p_cal + rng.normal(0, 0.05, len(p_cal)), 0.01, 0.99)
-    out = calibrated_vs_uncalibrated(p_cal, p_raw, v, 40_000.0, 500.0)
-    assert out["misallocation_cost"] >= -1e-6
+    out = calibrated_vs_uncalibrated(p_cal, p_raw, v, a, tau, 40_000.0, 500.0)
+    assert set(out) == {"saved_calibrated_allocation", "saved_uncalibrated_allocation",
+                        "misallocation_cost"}
 
 
 def test_match_offer_picks_nearest():

@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from api import artifacts
+from churn.allocate import groups as gp
 from churn.allocate import solver as sv
 from churn.config import load_config
 
@@ -28,16 +29,24 @@ def allocate(req: AllocateRequest):
     rar = scores["revenue_at_risk"].to_numpy(float)
     v = rar / np.maximum(p, 1e-9)
 
+    seg_idx = segments.set_index("customer_id").loc[scores["customer_id"]]
+    table = artifacts._group_params()
+    if table is not None:
+        a, tau = gp.customer_params(seg_idx["segment_id"].to_numpy(),
+                                    seg_idx["value_tier"].to_numpy(), table, v)
+    else:                                  # mock artifacts: no group table -> global curve
+        a, tau = gp.global_params(len(p), v, cfg)
+
     if req.strategy == "segment_aware":
-        s = sv.kkt_allocate(p, v, req.budget, cap)
+        s = sv.kkt_allocate(p, v, a, tau, req.budget, cap)
     elif req.strategy == "uniform":
         s = np.full(len(p), min(req.budget / len(p), cap))
     else:
         share = (v * p) / max((v * p).sum(), 1e-12)
         s = np.minimum(share * req.budget, cap)
 
-    saved = sv.expected_saved(s, p, v)
-    seg = segments.set_index("customer_id").loc[scores["customer_id"]]
+    saved = sv.expected_saved(s, p, v, a, tau)
+    seg = seg_idx
     tier = seg["value_tier"].to_numpy()
     seg_id = seg["segment_id"].to_numpy()
     cid = scores["customer_id"].to_numpy()

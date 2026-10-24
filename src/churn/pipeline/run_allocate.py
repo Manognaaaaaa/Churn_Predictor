@@ -6,6 +6,7 @@ import json
 import numpy as np
 import pandas as pd
 
+from churn.allocate import groups as gp
 from churn.allocate import solver as sv
 from churn.config import ROOT, ensure_dirs, load_config
 
@@ -22,19 +23,26 @@ def main() -> None:
     v = scores["revenue_at_risk"].to_numpy(float) / np.maximum(p_cal, 1e-9)  # raw value back out
     budget = float(cfg["budget"]["total"])
     cap = float(cfg["budget"]["max_spend_per_customer"])
-    u_max = float(cfg["models"]["threshold"]["offer_uplift"])
-    tau_frac = 0.05
-
-    # ---- strategy comparison at equal budget
-    comp = sv.strategy_comparison(p_cal, v, budget, cap, u_max, tau_frac)
-
-    # ---- chosen allocation: segment-aware KKT (README claim 2)
-    s = sv.kkt_allocate(p_cal, v, budget, cap, u_max, tau_frac)
-    saved = sv.expected_saved(s, p_cal, v, u_max, tau_frac)
-    grad_s, grad_obj = sv.gradient_check(p_cal, v, budget, cap, u_max, tau_frac)
-    grad_saved = float(sv.expected_saved(grad_s, p_cal, v, u_max, tau_frac).sum())
+    feats = pd.read_parquet(ROOT / cfg["paths"]["processed"] / "features.parquet")
+    table = gp.build_group_table(seg, feats, cfg)
+    table.to_parquet(artifacts / "group_params.parquet", index=False)
 
     seg_idx = seg.set_index("customer_id").loc[scores["customer_id"]]
+    a, tau = gp.customer_params(seg_idx["segment_id"].to_numpy(),
+                                seg_idx["value_tier"].to_numpy(), table, v)
+
+    # ---- strategy comparison at equal budget
+    comp = sv.strategy_comparison(p_cal, v, a, tau, budget, cap)
+
+    # ---- chosen allocation: segment-aware KKT (README claim 2)
+    s = sv.kkt_allocate(p_cal, v, a, tau, budget, cap)
+    saved = sv.expected_saved(s, p_cal, v, a, tau)
+    grad_s, grad_obj = sv.gradient_check(p_cal, v, a, tau, budget, cap)
+    grad_saved = float(sv.expected_saved(grad_s, p_cal, v, a, tau).sum())
+    rel_gap = abs(grad_saved - float(saved.sum())) / float(saved.sum())
+    tol = cfg["allocation"]["dual_check_tolerance"]
+    assert rel_gap <= tol, f"KKT vs dual ascent gap {rel_gap:.4%} exceeds {tol:.1%}"
+
     band_arr = scores["risk_band"].to_numpy()
     seg_id_arr = seg_idx["segment_id"].to_numpy()
     seg_name_arr = seg_idx["segment_name"].to_numpy()
@@ -73,27 +81,32 @@ def main() -> None:
     fcst.to_parquet(artifacts / "forecast.parquet", index=False)
 
     # ---- sensitivity + calibrated vs uncalibrated (README claim 1)
-    sens = sv.sensitivity(p_cal, v, budget, cap, u_max, tau_frac)
-    cvu = sv.calibrated_vs_uncalibrated(p_cal, p_raw, v, budget, cap, u_max, tau_frac)
+    sens = sv.sensitivity(p_cal, v, a, tau, budget, cap)
+    cvu = sv.calibrated_vs_uncalibrated(p_cal, p_raw, v, a, tau, budget, cap)
 
     report = {
         "budget": budget, "currency": cfg["budget"]["currency"],
         "strategy_comparison": comp,
         "gradient_check": {"kkt_objective": float(saved.sum()), "gradient_objective": grad_saved,
-                           "rel_gap": abs(grad_saved - float(saved.sum())) / max(float(saved.sum()), 1e-9)},
+                           "rel_gap": rel_gap},
         "sensitivity": sens,
         "calibrated_vs_uncalibrated": cvu,
         "allocated_customers": int(len(alloc)),
         "monthly_saved_uplift": monthly_saved,
         "assumptions": {
-            "response_curve": "expected saved = v*p*u_max*(1-exp(-s/tau))",
-            "u_max": u_max, "tau_frac": tau_frac,
+            "response_curve": "expected saved = p*v*a_g*(1-exp(-x/tau_i)), tau_i = t_g*v_i",
+            "group_params": table.to_dict("records"),
             "note": "offer response curves are assumptions, not measured uplift",
         },
     }
     (artifacts / "allocation_report.json").write_text(json.dumps(report, indent=2, default=str))
 
+    deriv = (ROOT / "docs" / "allocation_derivation.md").read_text(encoding="utf-8")
     lines = ["# Allocation report", "",
+             "## Response-curve groups (segment x value tier)", "",
+             (ROOT / "docs" / "response_curve_rule.md").read_text(encoding="utf-8"), "",
+             table.round(4).to_markdown(index=False), "",
+             deriv, "",
              f"Budget: {budget:,.0f} {cfg['budget']['currency']} "
              f"-> {len(alloc)} customers targeted, "
              f"{alloc['spend'].sum():,.0f} spent, "
@@ -102,8 +115,8 @@ def main() -> None:
              pd.DataFrame(comp).T.round(0).to_markdown(), "",
              "## KKT vs gradient check", "",
              f"- KKT objective: {saved.sum():,.0f}",
-             f"- Projected gradient objective: {grad_saved:,.0f}", "",
-             "## Sensitivity (±30% on response assumptions)", "",
+             f"- Dual-ascent objective: {grad_saved:,.0f} (gap {rel_gap:.3%}, tolerance {tol:.1%})", "",
+             "## Sensitivity (interim ±30%; rebuilt in Phase 8.5)", "",
              pd.DataFrame(sens).round(0).to_markdown(index=False), "",
              "## Calibrated vs uncalibrated allocation", "",
              f"- Allocations built on calibrated scores save {cvu['saved_calibrated_allocation']:,.0f}",
@@ -116,7 +129,7 @@ def main() -> None:
              "model with a different ranking would show a larger gap.", "",
              "## Assumptions",
              "- Response curves are assumptions, not measured uplift (see sensitivity above)."]
-    (ROOT / cfg["paths"]["reports"] / "allocation.md").write_text("\n".join(lines))
+    (ROOT / cfg["paths"]["reports"] / "allocation.md").write_text("\n".join(lines), encoding="utf-8")
 
     print(f"allocations.parquet: {len(alloc)} rows, spent {alloc['spend'].sum():,.0f}, "
           f"expected saved {alloc['expected_revenue_saved'].sum():,.0f}")

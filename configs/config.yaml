@@ -92,3 +92,28 @@ risk_bands:                     # on calibrated P(churn)
 segmentation:
   gmm_k_range: [2, 8]           # chosen by BIC
   value_tiers: [low, mid, high]
+
+# ---- Step 8: segment-aware response curves --------------------------------------------
+# r_i(x) = p_i * v_i * a_g * (1 - exp(-x / tau_i)),   tau_i = t_g * v_i,   g = (segment, value tier)
+#   a_g = a * m_seg * m_tier        t_g = t * n_seg * n_tier
+# We have NO treatment/uplift data: every number below is an assumption (see reports/allocation.md).
+# Multipliers are derived by the written rule below, not tuned to make any strategy win.
+allocation:
+  dual_check_tolerance: 0.005    # KKT vs dual-ascent objective must agree within 0.5%
+  response_curves:
+    a: 0.30                       # default max fraction of at-risk revenue an offer can save
+    t: 0.05                       # default saturation scale (tau = t * customer value)
+    # Segment rule: engagement index e_s = mean over engagement_features of the z-score of the
+    # segment's train-split mean (z taken ACROSS segments). m_seg = clip(1 + slope * e_s, lo, hi).
+    # More engaged segments (active members, more products) respond more to offers.
+    engagement_features: [IsActiveMember, NumOfProducts]
+    a_segment_slope: 0.15
+    a_segment_bounds: [0.5, 1.5]
+    # No evidence that segments differ in how big an offer must be -> n_seg = 1 (slope 0).
+    t_segment_slope: 0.0
+    t_segment_bounds: [0.5, 1.5]
+    # Tier rule: with tiers ordered low < mid < high, tier index k = -1, 0, +1 and
+    # multiplier = step ** k. High-value customers need a bigger offer to move (t up by the step);
+    # nothing suggests tiers differ in max response (a step 1.0).
+    a_tier_step: 1.0
+    t_tier_step: 1.25

@@ -31,6 +31,12 @@ def _segments() -> pd.DataFrame:
 
 
 @lru_cache(maxsize=1)
+def _group_params() -> pd.DataFrame | None:
+    path = artifacts_dir() / "group_params.parquet"
+    return pd.read_parquet(path) if path.exists() else None
+
+
+@lru_cache(maxsize=1)
 def _allocations() -> pd.DataFrame:
     return pd.read_parquet(artifacts_dir() / "allocations.parquet")
 
@@ -57,7 +63,7 @@ def _risk_summary() -> dict:
 
 
 def reset_cache() -> None:
-    for fn in (_scores, _segments, _allocations, _forecast, _metrics, _risk_summary):
+    for fn in (_scores, _segments, _group_params, _allocations, _forecast, _metrics, _risk_summary):
         fn.cache_clear()
 
 

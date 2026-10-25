@@ -1,16 +1,22 @@
+import type { ReactNode } from "react";
+
 export interface AppHeaderProps {
   title?: string;
-  tabs: string[];
+  tabs: (string | { value: string; label: string })[];
   active: string;
   onTab?: (tab: string) => void;
+  /** Right-hand slot, e.g. the view mode switch. */
+  actions?: ReactNode;
 }
 
-export function AppHeader({ title = "Churn & Revenue Risk", tabs, active, onTab }: AppHeaderProps) {
+export function AppHeader({ title = "Churn & Revenue Risk", tabs, active, onTab, actions }: AppHeaderProps) {
   return (
     <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line-100 px-6 py-4">
       <h1 className="t-app-title">{title}</h1>
       <nav className="flex flex-wrap gap-1 rounded-pill border border-line-100 bg-surface-100 p-1">
-        {tabs.map((t) => {
+        {tabs.map((o) => {
+          const t = typeof o === "string" ? o : o.value;
+          const text = typeof o === "string" ? o : o.label;
           const isActive = t === active;
           return (
             <button
@@ -22,11 +28,12 @@ export function AppHeader({ title = "Churn & Revenue Risk", tabs, active, onTab 
                 isActive ? "bg-cyan-soft text-cyan shadow-glow-cyan" : "text-ink-muted hover:text-ink"
               }`}
             >
-              {t}
+              {text}
             </button>
           );
         })}
       </nav>
+      {actions}
     </header>
   );
 }

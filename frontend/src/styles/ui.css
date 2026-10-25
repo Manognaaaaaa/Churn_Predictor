@@ -11,6 +11,7 @@
     font-family: var(--font-sans);
     font-size: 14px;
     line-height: 20px;
+    overflow-x: clip; /* hidden chart tooltips can sit just outside the viewport */
   }
   button:focus-visible,
   input:focus-visible,

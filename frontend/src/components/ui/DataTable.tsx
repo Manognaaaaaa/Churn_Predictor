@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 export interface Column<R> {
   key: string;
-  label: string;
+  label: ReactNode;
   align?: "left" | "right";
   mono?: boolean;
   muted?: boolean;

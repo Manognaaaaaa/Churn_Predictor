@@ -18,3 +18,6 @@ export { DriverList } from "./DriverList";
 export type { DriverListProps } from "./DriverList";
 export { RecommendationCard } from "./RecommendationCard";
 export type { RecommendationCardProps } from "./RecommendationCard";
+export { InfoTip } from "./InfoTip";
+export type { InfoTipProps } from "./InfoTip";
+export { Headline, Key } from "./Headline";

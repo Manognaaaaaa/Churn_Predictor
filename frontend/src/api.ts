@@ -38,6 +38,7 @@ export interface Allocation {
   customer_id: string;
   segment_id: number;
   value_tier: string;
+  segment_name?: string;
   offer: string;
   spend: number;
   expected_revenue_saved: number;

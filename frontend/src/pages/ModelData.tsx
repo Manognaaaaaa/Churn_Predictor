@@ -1,7 +1,11 @@
 import {
   Line, LineChart, CartesianGrid, Legend, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-import { fmtMoney, useMetrics } from "../api";
+import { useMetrics } from "../api";
+import { fmtMetric, fmtMoney, fmtPct } from "../lib/format";
+import { chartColors, tooltipStyle } from "../lib/theme";
+import { DataTable, KpiCard, Panel } from "../components/ui";
+import type { Column } from "../components/ui/DataTable";
 
 const MODEL_LABELS: Record<string, string> = {
   logreg_mle: "Logistic (MLE)",
@@ -14,15 +18,28 @@ const MODEL_LABELS: Record<string, string> = {
 
 const MODEL_ORDER = ["logreg_mle", "logreg_map", "naive_bayes", "random_forest", "xgboost", "lstm"];
 
-function pct(x: number | undefined): string {
-  return x == null ? "–" : `${(100 * x).toFixed(1)}%`;
+interface ModelRow {
+  name: string;
+  label: string;
+  pr_auc: string;
+  brier: string;
+  ece: string;
 }
+
+const COLUMNS: Column<ModelRow>[] = [
+  { key: "label", label: "Model" },
+  { key: "pr_auc", label: "PR-AUC", align: "right" },
+  { key: "brier", label: "Brier", align: "right" },
+  { key: "ece", label: "ECE", align: "right" },
+];
 
 export default function ModelData() {
   const metrics = useMetrics();
-  if (metrics.isLoading) return <p className="text-slate-400">Loading…</p>;
-  if (metrics.error) return <p className="text-red-400">API unavailable – is `make api` running?</p>;
+  if (metrics.isLoading) return <p className="msg">Loading…</p>;
+  if (metrics.error) return <p className="msg">API unavailable. Is `make api` running?</p>;
 
+  const c = chartColors();
+  const axis = { fill: c.axis, fontSize: 10 };
   const m = metrics.data!;
   const models = (m.models ?? []) as {
     name: string;
@@ -30,94 +47,67 @@ export default function ModelData() {
     valid_brier?: number;
     valid_ece?: number;
   }[];
-  models.sort((a, b) => (MODEL_ORDER.indexOf(a.name) ?? 99) - (MODEL_ORDER.indexOf(b.name) ?? 99));
+  models.sort((a, b) => MODEL_ORDER.indexOf(a.name) - MODEL_ORDER.indexOf(b.name));
+  const rows: ModelRow[] = models.map((mo) => ({
+    name: mo.name,
+    label: MODEL_LABELS[mo.name] ?? mo.name,
+    pr_auc: fmtPct(mo.valid_pr_auc),
+    brier: fmtMetric(mo.valid_brier),
+    ece: fmtMetric(mo.valid_ece),
+  }));
 
   const test = m.test ?? {};
   const thr = m.threshold ?? {};
-  const curve = (m.calibration_curve ?? []) as {
-    bin_mean_pred: number;
-    bin_frac_pos: number;
-    n: number;
-  }[];
-  const curveData = curve.map((c) => ({
-    pred: c.bin_mean_pred,
-    observed: c.bin_frac_pos,
-    perfect: c.bin_mean_pred,
-  }));
+  const curve = (m.calibration_curve ?? []) as { bin_mean_pred: number; bin_frac_pos: number; n: number }[];
+  const curveData = curve.map((p) => ({ pred: p.bin_mean_pred, observed: p.bin_frac_pos }));
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Kpi label="Best model" value={MODEL_LABELS[m.best_model] ?? m.best_model ?? "–"} />
-        <Kpi label="Calibration" value={m.calibration ?? "–"} />
-        <Kpi label="Test PR-AUC (calibrated)" value={pct(test.pr_auc_calibrated)} />
-        <Kpi label="Test Brier (calibrated)" value={test.brier_calibrated == null ? "–" : test.brier_calibrated.toFixed(4)} />
+    <>
+      <div className="grid-kpi">
+        <KpiCard label="Best model" value={MODEL_LABELS[m.best_model] ?? m.best_model ?? "–"} />
+        <KpiCard label="Calibration" value={m.calibration ?? "–"} />
+        <KpiCard label="Test PR-AUC (calibrated)" value={fmtPct(test.pr_auc_calibrated)} />
+        <KpiCard label="Test Brier (calibrated)" value={fmtMetric(test.brier_calibrated)} />
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="rounded-lg border border-slate-800 bg-slate-900 p-4">
-          <h2 className="mb-2 font-medium">Model comparison (validation)</h2>
-          <table className="w-full text-sm">
-            <thead className="text-xs uppercase text-slate-400 border-b border-slate-800">
-              <tr>
-                <th className="text-left px-2 py-1.5">Model</th>
-                <th className="text-right px-2 py-1.5">PR-AUC</th>
-                <th className="text-right px-2 py-1.5">Brier</th>
-                <th className="text-right px-2 py-1.5">ECE</th>
-              </tr>
-            </thead>
-            <tbody>
-              {models.map((mo) => (
-                <tr
-                  key={mo.name}
-                  className={`border-b border-slate-800/50 ${mo.name === m.best_model ? "text-sky-300 font-medium" : ""}`}
-                >
-                  <td className="px-2 py-1.5">{MODEL_LABELS[mo.name] ?? mo.name}</td>
-                  <td className="px-2 py-1.5 text-right">{pct(mo.valid_pr_auc)}</td>
-                  <td className="px-2 py-1.5 text-right">{mo.valid_brier?.toFixed(4)}</td>
-                  <td className="px-2 py-1.5 text-right">{mo.valid_ece?.toFixed(4)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="grid-2">
+        <div className="min-w-0">
+          <h2 className="t-panel-title mb-3">Model comparison (validation)</h2>
+          <DataTable columns={COLUMNS} rows={rows} rowKey="name" highlightKey={m.best_model} />
         </div>
 
-        <div className="rounded-lg border border-slate-800 bg-slate-900 p-4">
-          <h2 className="mb-2 font-medium">Calibration curve (test)</h2>
+        <Panel
+          title="Calibration curve (test)"
+          note="Isotonic calibration maps raw scores to observed churn frequencies (11 test bins)."
+        >
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={curveData}>
-              <CartesianGrid stroke="#1e293b" />
-              <XAxis dataKey="pred" type="number" domain={[0, 0.6]} tick={{ fontSize: 10 }} tickFormatter={(v) => pct(v)} />
-              <YAxis domain={[0, 0.6]} tickFormatter={(v) => pct(v)} tick={{ fontSize: 10 }} />
-              <Tooltip formatter={(v) => pct(Number(v))} />
-              <Legend />
-              <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 0.6, y: 0.6 }]} stroke="#64748b" strokeDasharray="4 4" />
-              <Line dataKey="observed" stroke="#38bdf8" strokeWidth={2} dot={{ r: 3 }} name="Observed churn rate" />
+              <CartesianGrid stroke={c.grid} />
+              <XAxis dataKey="pred" type="number" domain={[0, 0.6]} tick={axis} stroke={c.axis} tickFormatter={(v) => fmtPct(v)} />
+              <YAxis domain={[0, 0.6]} tick={axis} stroke={c.axis} tickFormatter={(v) => fmtPct(v)} />
+              <Tooltip {...tooltipStyle()} formatter={(v) => fmtPct(Number(v))} />
+              <Legend wrapperStyle={{ color: c.inkMuted }} />
+              <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 0.6, y: 0.6 }]} stroke={c.interval} strokeDasharray="4 4" />
+              <Line dataKey="observed" stroke={c.forecast} strokeWidth={2} dot={{ r: 3, fill: c.forecast, stroke: c.forecast }} name="Observed churn rate" />
             </LineChart>
           </ResponsiveContainer>
-          <p className="text-xs text-slate-500 mt-2">
-            Isotonic calibration maps raw scores to observed churn frequencies (11 test bins).
-          </p>
-        </div>
+        </Panel>
       </div>
 
-      <div className="rounded-lg border border-slate-800 bg-slate-900 p-4 text-sm space-y-1">
-        <h2 className="font-medium mb-1">Operating point</h2>
-        <div>Cost-optimal threshold: <span className="font-mono">{thr.threshold?.toFixed(3)}</span> (offer cost 10% of customer value, uplift 30%)</div>
-        <div>Flagged customers: <span className="font-mono">{fmtMoney(thr.n_flagged)}</span> · minimised cost: <span className="font-mono">{fmtMoney(thr.cost)}</span></div>
-        <div className="text-xs text-slate-500">
-          Raw vs calibrated test: PR-AUC {pct(test.pr_auc_raw)} → {pct(test.pr_auc_calibrated)} · Brier {test.brier_raw?.toFixed(4)} → {test.brier_calibrated?.toFixed(4)} · ECE {pct(test.ece_raw)} → {pct(test.ece_calibrated)}
+      <Panel
+        title="Operating point"
+        note={`Raw vs calibrated test: PR-AUC ${fmtPct(test.pr_auc_raw)} → ${fmtPct(test.pr_auc_calibrated)} · Brier ${fmtMetric(test.brier_raw)} → ${fmtMetric(test.brier_calibrated)} · ECE ${fmtPct(test.ece_raw)} → ${fmtPct(test.ece_calibrated)}`}
+      >
+        <div className="grid gap-1">
+          <div>
+            Cost-optimal threshold: <span className="t-metric">{fmtMetric(thr.threshold, 3)}</span> (offer cost 10% of customer value, uplift 30%)
+          </div>
+          <div>
+            Flagged customers: <span className="t-metric">{fmtMoney(thr.n_flagged)}</span> · minimised cost:{" "}
+            <span className="t-metric">{fmtMoney(thr.cost)}</span>
+          </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function Kpi({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900 p-4">
-      <div className="text-xs uppercase tracking-wide text-slate-400">{label}</div>
-      <div className="mt-1 text-2xl font-semibold">{value}</div>
-    </div>
+      </Panel>
+    </>
   );
 }

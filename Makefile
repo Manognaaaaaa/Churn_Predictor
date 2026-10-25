@@ -1,4 +1,4 @@
-.PHONY: help mocks data features train risk allocate api web test
+.PHONY: help mocks data features train risk allocate claims api web test
 
 help:
 	@echo "Targets:"
@@ -8,6 +8,7 @@ help:
 	@echo "  train     step 4: models, calibration, SHAP"
 	@echo "  risk      step 5: revenue at risk, forecast, segments"
 	@echo "  allocate  step 6: budget allocation"
+	@echo "  claims    step 8: strategy, calibration, sensitivity, rounds experiments"
 	@echo "  api       step 7: run FastAPI"
 	@echo "  web       step 7: run React dashboard"
 	@echo "  test      run pytest"
@@ -29,6 +30,9 @@ risk:
 
 allocate:
 	PYTHONPATH=src python -m churn.pipeline.run_allocate
+
+claims:
+	PYTHONPATH=src python -m churn.pipeline.run_claims
 
 api:
 	PYTHONPATH=src python -m uvicorn api.app:app --port 8000

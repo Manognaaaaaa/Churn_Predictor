@@ -13,6 +13,7 @@ paths:
   processed: data/processed
   artifacts: artifacts
   reports: reports
+  test_probs: artifacts/test_probs.parquet   # Step 8: per-model test-split probabilities
 
 datasets:
   churn_modelling:
@@ -91,3 +92,63 @@ risk_bands:                     # on calibrated P(churn)
 segmentation:
   gmm_k_range: [2, 8]           # chosen by BIC
   value_tiers: [low, mid, high]
+
+# ---- Step 8: segment-aware response curves --------------------------------------------
+# r_i(x) = p_i * v_i * a_g * (1 - exp(-x / tau_i)),   tau_i = t_g * v_i,   g = (segment, value tier)
+#   a_g = a * m_seg * m_tier        t_g = t * n_seg * n_tier
+# We have NO treatment/uplift data: every number below is an assumption (see reports/allocation.md).
+# Multipliers are derived by the written rule below, not tuned to make any strategy win.
+allocation:
+  dual_check_tolerance: 0.005    # KKT vs dual-ascent objective must agree within 0.5%
+  response_curves:
+    a: 0.30                       # default max fraction of at-risk revenue an offer can save
+    t: 0.05                       # default saturation scale (tau = t * customer value)
+    # Segment rule: engagement index e_s = mean over engagement_features of the z-score of the
+    # segment's train-split mean (z taken ACROSS segments). m_seg = clip(1 + slope * e_s, lo, hi).
+    # More engaged segments (active members, more products) respond more to offers.
+    engagement_features: [IsActiveMember, NumOfProducts]
+    a_segment_slope: 0.15
+    a_segment_bounds: [0.5, 1.5]
+    # No evidence that segments differ in how big an offer must be -> n_seg = 1 (slope 0).
+    t_segment_slope: 0.0
+    t_segment_bounds: [0.5, 1.5]
+    # Tier rule: with tiers ordered low < mid < high, tier index k = -1, 0, +1 and
+    # multiplier = step ** k. High-value customers need a bigger offer to move (t up by the step);
+    # nothing suggests tiers differ in max response (a step 1.0).
+    a_tier_step: 1.0
+    t_tier_step: 1.25
+
+  # ---- offer catalog (Step 8.2) -----------------------------------------------------
+  # Stage 1 (KKT) decides spend x_i. Stage 2 picks, among the offers eligible for the customer's
+  # (engagement class, value tier) group whose cost <= max_spend_per_customer, the cheapest one with
+  # cost >= x_i (or the largest eligible one if none covers x_i). Spend is then the offer's real
+  # cost and the budget is re-balanced so total spend <= B.
+  # cost = flat + cost_frac * customer_value.  Costs and eligibility are assumptions (no uplift data).
+  # Rule of thumb: disengaged groups need a human touch (service call); engaged groups respond to
+  # money offers (retention bonus, value discount); cheap touches are open to everyone.
+  engagement_split: 0.0           # segment engagement index > split -> "high" class, else "low"
+  min_spend: 0.5                  # solved spend below this is treated as "not targeted"
+  rebalance_max_iter: 40          # budget re-balancing rounds after offer snapping
+  rebalance_tol: 0.001            # stop when snapped spend is within 0.1% of the budget
+  offers:
+    loyalty_email:   {flat: 5.0,   cost_frac: 0.0,   eligible: {tiers: [low, mid, high], engagement: [low, high]}}
+    fee_waiver:      {flat: 25.0,  cost_frac: 0.0,   eligible: {tiers: [low, mid, high], engagement: [low, high]}}
+    service_call:    {flat: 100.0, cost_frac: 0.0,   eligible: {tiers: [low, mid, high], engagement: [low]}}
+    retention_bonus: {flat: 250.0, cost_frac: 0.0,   eligible: {tiers: [mid, high],      engagement: [high]}}
+    value_discount:  {flat: 0.0,   cost_frac: 0.005, eligible: {tiers: [low, mid, high], engagement: [high]}}  # 0.5% of value
+
+  # ---- evaluation of claim 2 (Step 8.3) ---------------------------------------------
+  # Budgets below are PORTFOLIO budgets (all customers). A split is evaluated at
+  # budget * (n_split / n_all) so spend per customer is the same as in production.
+  eval_split: test
+  budget_sweep: [10000, 25000, 50000, 100000, 200000, 400000, 700000, 1000000]
+  bootstrap_resamples: 1000       # customer resamples for CIs on realized saved revenue
+  bootstrap_level: 0.90
+
+  # ---- calibration claim, sensitivity, rounds (Step 8.4-8.6) ---------------------------
+  calibration_sources: [p_rf_isotonic, p_rf_platt, p_rf_raw, p_rf_smote_raw, p_naive_bayes_raw, p_xgboost_raw]
+  sensitivity_levels: [-0.5, -0.25, 0.25, 0.5]   # relative change of each a_g and t_g
+  rounds: 6                       # monthly reallocation rounds
+  rounds_seeds: 200               # paired simulations for the rounds-vs-one-shot comparison
+  rounds_interval: 0.90
+  reason_response_band: 0.05      # a_g within +-5% of default a -> 'responds on par'

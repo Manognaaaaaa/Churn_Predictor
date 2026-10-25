@@ -1,14 +1,14 @@
 # Final report — churn & revenue risk platform
 
-All seven README steps are implemented, trained on the user's own datasets, and verified end to end. Work lives on per-step branches (`step-2-data-eda` … `step-7-app`); `main` is untouched pending PR review.
+README steps 2-8 are implemented (step 9, real time series, is pending), trained on the user's own datasets, and verified end to end. Work lives on per-step branches (`step-2-data-eda` … `step-7-app`); `main` is untouched pending PR review.
 
 ## Results headline
 
 - **Model:** Random Forest wins on validation PR-AUC (0.7224 vs 0.7183 XGBoost, 0.6720 LSTM, ≤0.5544 both logistic variants). Isotonic calibration cuts test ECE from 0.0396 → **0.0234** (−41%) at a small PR-AUC cost (0.7055 → 0.6756, expected since isotonic coarsens the ranking); Brier improves 0.1043 → 0.1018. Test set: 1,500 customers, held out and touched once.
 - **Cost-optimal threshold 0.060** flags 1,061 of 1,500 validation customers at offer cost = 10% of customer value and assumed uplift = 30%.
 - **Portfolio risk:** 208.1M revenue at risk across 10,000 customers; bands 7,151 green / 1,617 amber / 1,232 red (thresholds 0.20 / 0.50).
-- **Forecast:** ARIMA(1,1,1) chosen by backtest — MAE **547,720** vs 685,324 for the moving-average baseline (−20%).
-- **Allocation:** KKT segment-aware water-filling saves **582,595** on a 100k budget vs 345,105 risk-proportional and 121,414 uniform (**4.8× uniform**). Dual-ascent gradient check reproduces the KKT optimum to 0.00%. Allocating on calibrated rather than raw scores saves 3,022 more — small here because isotonic calibration is rank-preserving (it rescales probabilities without reordering customers); the same comparison against a miscalibrated but differently-ranked model would be much larger.
+- **Forecast (to be replaced in Step 9; the history is synthetic and the comparison below is circular):** ARIMA(1,1,1) chosen by backtest — MAE **547,720** vs 685,324 for the moving-average baseline (−20%).
+- **Allocation (Step 8, test split):** segment-aware KKT expects to save 88,005 at a 15,000 test budget (the 100k portfolio budget x the 15% population share) vs 75,331 for global KKT, 75,942 for top-k by risk, 17,704 for uniform (about 5x). After offer matching the figures are 82,423 / 77,772 / 78,113 / 8,875. Dual ascent reproduces the KKT optimum within 0.03%. The Step 6 figure (582,595 on all 10,000 customers, 70% of them training rows, scored with one global curve) is superseded.
 
 ## Model comparison (validation, raw probabilities)
 
@@ -23,20 +23,24 @@ All seven README steps are implemented, trained on the user's own datasets, and 
 
 Random Forest stratified 5-fold CV PR-AUC: 0.6702. Calibration method chosen by validation Brier: isotonic 0.0948 vs Platt 0.0985.
 
-## Strategy comparison (equal 100k budget)
+## Strategy comparison (test split, budget 15,000)
 
-| Strategy | Spend | Expected revenue saved | Customers targeted |
+| Strategy | Expected saved (continuous) | Expected saved (snapped) | Realized saved (labels) |
 |---|---|---|---|
-| Segment-aware (KKT) | 100,000 | **582,595** | 319 |
-| Risk-proportional | 100,000 | 345,105 | 7,704 |
-| Uniform | 100,000 | 121,414 | 10,000 |
+| Segment-aware KKT | 88,005 | 82,423 | 85,659 |
+| Global KKT | 75,331 | 77,772 | 73,606 |
+| Top-k by risk | 75,942 | 78,113 | 73,990 |
+| Top-k by revenue at risk | 59,802 | 60,196 | 57,840 |
+| Risk-proportional | 41,647 | 43,753 | 40,377 |
+| Uniform | 17,704 | 8,875 | 17,815 |
 
-Sensitivity ±30% on response assumptions moves expected savings between 407,816 and 821,995 without changing the ranking of strategies. Full detail: `reports/allocation.md`.
+Sensitivity (+-25%/50% on each of the 24 groups' a and t, and all together; 204 scenarios): segment-aware stays first in 204/204 and never loses to global KKT, margin +1.6% to +36.4%. A stress test with the assumed tier effect reversed does flip it (-19.8%). Full detail: `reports/allocation.md`.
 
 ## Claims
 
-1. **Calibration matters more than ranking when scores drive spending** — supported directionally (calibrated allocation saves more, ECE halved), with the rank-preserving caveat above.
-2. **Segment-aware allocation beats uniform discounting at equal budget** — strongly supported: 4.8× the expected savings of uniform at identical spend.
+1. **Calibration matters more than ranking when scores drive spending: not supported.** Realized saved revenue (true labels, test split, 1,000-resample bootstrap) is not separable across six probability sources; all paired CIs against RF raw include zero. Calibration metrics correlate with realized savings more than PR-AUC (Spearman -0.89 ECE, -0.94 Brier, +0.64 PR-AUC), but with six points and Brier confounded by ranking this is not evidence. With a binding budget a uniform rescaling of p is absorbed by the Lagrange multiplier, which limits how much calibration can matter for a fixed-budget allocation. The earlier "calibrated saves 3,022 more" figure scored both allocations with the calibrated probabilities and was circular; it has been removed.
+2. **Segment-aware allocation beats uniform discounting at equal budget: supported (about 5x).** The fairer comparison, against a global response curve, gives +16.8% expected savings (partly by construction), a realized-label difference of +12k with a CI that includes zero, and about +6% after offer snapping. The advantage depends on assumed (not measured) response curves.
+3. **Reallocation rounds beat a single allocation: no.** 6 monthly rounds save 57,975 vs 85,872 for one-shot (paired difference -27,896, SE 6,722).
 
 ## Deviations from the original plan (documented)
 
@@ -56,12 +60,13 @@ Sensitivity ±30% on response assumptions moves expected savings between 407,816
 | 5 Risk | `step-5-risk` | revenue at risk, ARIMA vs MA backtest, GMM k=8 segments, band counts | 16 |
 | 6 Allocation | `step-6-allocation` | KKT solver + dual-ascent check, strategy comparison, sensitivity, `with_allocation` forecast | 22 |
 | 7 App | `step-7-app` | FastAPI (8 endpoints + PDF reports), React dashboard (4 tabs), Makefile api/web, README + final report | 5 (API) |
+| 8 Claims | `step-8-claims` | segment x tier response curves, offer catalog + matching, six strategies, label-based calibration test, sensitivity, rounds, API strategies + sweep | 77 total |
 
 ## How to run
 
 ```bash
 pip install -r requirements.txt
-make data && make features && make train && make risk && make allocate
+make data && make features && make train && make risk && make allocate && make claims
 make api   # http://localhost:8000
 make web   # http://localhost:5173 (proxies API to :8000)
 ```

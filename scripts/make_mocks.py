@@ -5,6 +5,7 @@ Writes to artifacts/mock/. Schemas follow docs/contracts.md.
 
 Usage: python scripts/make_mocks.py
 """
+import json
 from pathlib import Path
 
 import numpy as np
@@ -110,7 +111,18 @@ def main() -> None:
         }))
     pd.concat(frames, ignore_index=True).to_parquet(OUT / "forecast.parquet", index=False)
 
-    print(f"Wrote 4 mock files to {OUT}")
+    # allocation summary (budget sweep only; real one comes from `make claims`)
+    names = ["segment_aware_kkt", "global_kkt", "uniform", "top_k_risk",
+             "top_k_revenue_at_risk", "risk_proportional"]
+    gain = dict(zip(names, [3.0, 2.8, 1.2, 2.5, 2.2, 1.8]))
+    budgets = CFG["allocation"]["budget_sweep"]
+    sweep = [{"portfolio_budget": b, "split_budget": b * 0.15, "strategy": n,
+              "saved_continuous": gain[n] * b ** 0.9, "saved_snapped": 0.9 * gain[n] * b ** 0.9,
+              "spend_snapped": float(b * 0.15)} for b in budgets for n in names]
+    (OUT / "allocation_summary.json").write_text(json.dumps(
+        {"split": "mock", "budget_sweep": sweep}, indent=2))
+
+    print(f"Wrote 5 mock files to {OUT}")
 
 
 if __name__ == "__main__":

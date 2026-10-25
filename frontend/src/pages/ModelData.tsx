@@ -83,11 +83,11 @@ export default function ModelData() {
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={curveData}>
               <CartesianGrid stroke={c.grid} />
-              <XAxis dataKey="pred" type="number" domain={[0, 0.6]} tick={axis} stroke={c.axis} tickFormatter={(v) => fmtPct(v)} />
-              <YAxis domain={[0, 0.6]} tick={axis} stroke={c.axis} tickFormatter={(v) => fmtPct(v)} />
+              <XAxis dataKey="pred" type="number" domain={[0, 1]} tick={axis} stroke={c.axis} tickFormatter={(v) => fmtPct(v)} />
+              <YAxis domain={[0, 1]} tick={axis} stroke={c.axis} tickFormatter={(v) => fmtPct(v)} />
               <Tooltip {...tooltipStyle()} formatter={(v) => fmtPct(Number(v))} />
               <Legend wrapperStyle={{ color: c.inkMuted }} />
-              <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 0.6, y: 0.6 }]} stroke={c.interval} strokeDasharray="4 4" />
+              <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 1, y: 1 }]} stroke={c.interval} strokeDasharray="4 4" />
               <Line dataKey="observed" stroke={c.forecast} strokeWidth={2} dot={{ r: 3, fill: c.forecast, stroke: c.forecast }} name="Observed churn rate" />
             </LineChart>
           </ResponsiveContainer>

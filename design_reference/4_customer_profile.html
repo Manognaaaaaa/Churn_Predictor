@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Customer profile</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Serif:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1726}
+a{color:#9DBBDB}a:hover{color:#C5D7EA}
+.tab{display:inline-block;padding:8px 16px;border-radius:8px;font-size:14px;line-height:20px;color:#A3ADBF;text-decoration:none;transition:color .2s,background .2s}
+.tab:hover{color:#E6E9EF;background:#1B2842}
+.tab.on{background:#3A5F8C;color:#F1F3F7}
+.pick{font:inherit;color:#E6E9EF;width:100%;text-align:left;cursor:pointer;padding:12px 14px;min-height:44px;border-radius:10px;border:1px solid transparent;background:transparent;display:flex;justify-content:space-between;align-items:center;gap:10px;transition:background .2s,border-color .2s}
+.pick:hover{background:#1B2842}
+.pick.on{background:#22355A;border-color:#3A5F8C}
+.offer{font:inherit;color:#E6E9EF;text-align:left;cursor:pointer;padding:18px 20px;min-height:44px;border-radius:12px;border:1px solid #26344F;background:#152036;display:flex;flex-direction:column;gap:6px;transition:border-color .3s,box-shadow .3s,transform .3s}
+.offer:hover{border-color:#4A5D80}
+.offer.on{border-color:#3A5F8C;box-shadow:0 0 0 1px #3A5F8C,0 8px 24px -12px rgba(157,187,219,.4);transform:translateY(-2px)}
+.send{font:inherit;font-size:15px;font-weight:600;padding:12px 22px;min-height:44px;border-radius:8px;border:0;background:#3A5F8C;color:#F1F3F7;cursor:pointer;transition:background .2s,opacity .2s}
+.send:hover{background:#4A72A3}
+.send:disabled{opacity:.4;cursor:default}
+.search{font:inherit;font-size:15px;width:100%;box-sizing:border-box;padding:11px 14px;min-height:44px;border-radius:8px;border:1px solid #34446A;background:#152036;color:#E6E9EF}
+.search::placeholder{color:#8A95A8}
+.tab:focus-visible,.pick:focus-visible,.offer:focus-visible,.send:focus-visible,.search:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(157,187,219,.4)}
+.arc{transition:stroke-dasharray 1.2s cubic-bezier(.22,1,.36,1),stroke .6s}
+.drv{transition:width .9s cubic-bezier(.22,1,.36,1)}
+.fade{animation:fade .6s cubic-bezier(.22,1,.36,1) both}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.arc,.drv{transition:none}.fade{animation:none}}
+</style>
+</helmet>
+<div style="min-height: 1300px; box-sizing: border-box; background: #0F1726; color: #E6E9EF; font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 22px;">
+<header style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; padding: 16px 32px; background: #152036; border-bottom: 1px solid #26344F;">
+<div style="font-family: 'IBM Plex Serif', Georgia, serif; font-weight: 600; font-size: 20px; line-height: 28px;">Churn &amp; Revenue Risk</div>
+<nav aria-label="Concepts" style="display: flex; flex-wrap: wrap; gap: 4px;">
+<a class="tab" href="Main.dc.html">Customer galaxy</a>
+<a class="tab" href="Flow.dc.html">Money flow</a>
+<a class="tab" href="Budget.dc.html">Budget simulator</a>
+<a class="tab on" href="Customer.dc.html" aria-current="page">Customer profile</a>
+</nav>
+</header>
+<div style="max-width: 1320px; margin: 0 auto; padding: 32px; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start;">
+
+<aside style="flex: 1 1 280px; max-width: 340px; background: #152036; border: 1px solid #26344F; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+<label for="find" style="font-weight: 600;">Find a customer</label>
+<input id="find" class="search" type="search" placeholder="Name or customer ID" value="{{q}}" onChange="{{onQ}}">
+<div style="font-size: 13px; color: #A3ADBF;">{{countText}}</div>
+<div style="display: flex; flex-direction: column; gap: 4px;">
+<sc-for list="{{list}}" as="c" hint-placeholder-count="8">
+<button class="{{c.cls}}" onClick="{{c.pick}}" aria-pressed="{{c.pressed}}">
+<span style="display: flex; flex-direction: column;"><span style="font-weight: 600;">{{c.name}}</span><span style="font-size: 13px; color: #A3ADBF;">{{c.sub}}</span></span>
+<span style="font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; color: {{c.c}}; background: {{c.soft}}; white-space: nowrap;">{{c.band}}</span>
+</button>
+</sc-for>
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}">
+<div style="color: #A3ADBF; padding: 8px 4px;">No customer matches that name or ID.</div>
+</sc-if>
+</div>
+</aside>
+
+<main style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
+<section class="fade" style="background: #152036; border: 1px solid #26344F; border-radius: 14px; padding: 28px; display: flex; flex-wrap: wrap; gap: 28px; align-items: center;">
+<div style="flex: 999 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 14px;">
+<div style="display: flex; align-items: center; gap: 18px;">
+<div style="width: 72px; height: 72px; border-radius: 999px; background: #22355A; color: #9DBBDB; display: grid; place-items: center; font-family: 'IBM Plex Serif', serif; font-size: 28px; font-weight: 600; flex: none;">{{cur.initials}}</div>
+<div style="display: flex; flex-direction: column; gap: 2px;">
+<h1 style="margin: 0; font-family: 'IBM Plex Serif', Georgia, serif; font-size: 40px; line-height: 46px; font-weight: 600;">{{cur.name}}</h1>
+<div style="color: #A3ADBF;">{{cur.about}}</div>
+<div style="color: #8A95A8; font-size: 13px;">Customer ID {{cur.id}}</div>
+</div>
+</div>
+<p style="margin: 0; font-size: 17px; line-height: 27px; max-width: 560px;">{{cur.story}}</p>
+<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+<span style="font-size: 13px; font-weight: 600; padding: 4px 12px; border-radius: 999px; color: {{bandC}}; background: {{bandSoft}};">{{band}}</span>
+<sc-if value="{{cur.sample}}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; padding: 4px 12px; border-radius: 999px; color: #A3ADBF; background: #1F2B45;">Still a customer, sample risk score</span></sc-if>
+<sc-if value="{{cur.left}}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; padding: 4px 12px; border-radius: 999px; color: #A3ADBF; background: #1F2B45;">Left the bank in the data</span></sc-if>
+</div>
+</div>
+<div style="flex: 1 1 240px; display: flex; justify-content: center;">
+<div style="position: relative; width: 100%; max-width: 280px;">
+<svg viewBox="0 0 260 230" aria-hidden="true" style="width: 100%; height: auto; display: block;">
+<circle cx="130" cy="130" r="108" fill="none" stroke="#1F2B45" transform="rotate(135 130 130)" style="stroke-width: 16px; stroke-dasharray: 508.94 678.58; stroke-linecap: round;"></circle>
+<circle class="arc" cx="130" cy="130" r="108" fill="none" stroke="{{bandC}}" transform="rotate(135 130 130)" style="stroke-width: 16px; stroke-dasharray: {{len}} 678.58; stroke-linecap: round;"></circle>
+</svg>
+<div style="position: absolute; left: 0; right: 0; top: 32%; display: flex; flex-direction: column; align-items: center;">
+<div style="font-family: 'IBM Plex Serif', serif; font-weight: 600; font-size: 56px; line-height: 60px; font-variant-numeric: tabular-nums;">{{pctText}}</div>
+<div style="color: #A3ADBF; font-size: 14px;">chance of leaving</div>
+<div style="color: #9DBBDB; font-size: 13px; font-weight: 600; min-height: 18px; margin-top: 2px;">{{deltaText}}</div>
+</div>
+</div>
+</div>
+</section>
+
+<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px;">
+<sc-for list="{{facts}}" as="f" hint-placeholder-count="6">
+<div style="background: #152036; border: 1px solid #26344F; border-left: 4px solid {{f.edge}}; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 2px;">
+<div style="color: #A3ADBF; font-size: 13px;">{{f.label}}</div>
+<div style="font-family: 'IBM Plex Serif', serif; font-size: 28px; line-height: 34px; font-weight: 600; font-variant-numeric: tabular-nums;">{{f.value}}</div>
+<div style="font-size: 13px; color: {{f.nc}};">{{f.note}}</div>
+</div>
+</sc-for>
+</section>
+
+<section style="display: flex; flex-wrap: wrap; gap: 24px;">
+<div style="flex: 1 1 380px; min-width: 0; background: #152036; border: 1px solid #26344F; border-radius: 14px; padding: 24px; display: flex; flex-direction: column; gap: 18px;">
+<div>
+<h2 style="margin: 0; font-family: 'IBM Plex Serif', serif; font-size: 22px; line-height: 30px; font-weight: 600;">What drives this score</h2>
+<p style="margin: 2px 0 0; color: #A3ADBF; font-size: 14px;">Longer bar, bigger effect. Brick raises the risk, green lowers it.</p>
+</div>
+<sc-for list="{{drivers}}" as="d" hint-placeholder-count="5">
+<div style="display: flex; flex-direction: column; gap: 6px;">
+<div style="display: flex; justify-content: space-between; gap: 12px;"><span style="font-weight: 600;">{{d.label}}</span><span style="font-size: 13px; font-weight: 600; color: {{d.c}};">{{d.word}}</span></div>
+<div style="height: 10px; border-radius: 999px; background: #1F2B45; overflow: hidden;"><div class="drv" style="height: 100%; border-radius: 999px; width: {{d.w}}; background: {{d.c}}; transition-delay: {{d.dl}};"></div></div>
+<div style="font-size: 14px; color: #A3ADBF;">{{d.why}}</div>
+</div>
+</sc-for>
+</div>
+
+<div style="flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 14px;">
+<div>
+<h2 style="margin: 0; font-family: 'IBM Plex Serif', serif; font-size: 22px; line-height: 30px; font-weight: 600;">Recommended action</h2>
+<p style="margin: 2px 0 0; color: #A3ADBF; font-size: 14px;">Pick an offer to see the new chance of leaving and what it keeps.</p>
+</div>
+<div role="radiogroup" aria-label="Offer" style="display: flex; flex-direction: column; gap: 10px;">
+<sc-for list="{{offers}}" as="o" hint-placeholder-count="3">
+<button class="{{o.cls}}" role="radio" aria-checked="{{o.checked}}" onClick="{{o.pick}}">
+<span style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+<span style="display: flex; align-items: center; gap: 8px;"><span style="font-weight: 600; font-size: 16px;">{{o.label}}</span><sc-if value="{{o.best}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #22355A; color: #9DBBDB;">Best value</span></sc-if></span>
+<span style="font-size: 14px; color: #A3ADBF;">Risk to <strong style="color: #E6E9EF;">{{o.pct}}</strong></span>
+</span>
+<span style="color: #A3ADBF; font-size: 14px;">{{o.desc}}</span>
+<span style="display: flex; gap: 18px; flex-wrap: wrap; font-size: 14px;"><span>Costs <strong>{{o.cost}}</strong></span><span>Keeps about <strong style="color: #9DBBDB;">{{o.keep}}</strong></span></span>
+</button>
+</sc-for>
+</div>
+<div style="background: #152036; border: 1px solid #26344F; border-radius: 14px; padding: 20px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between;">
+<div>
+<div style="color: #A3ADBF; font-size: 14px;">Expected value kept</div>
+<div style="font-family: 'IBM Plex Serif', serif; font-size: 40px; line-height: 46px; font-weight: 600; color: #9DBBDB; font-variant-numeric: tabular-nums;">+{{keptText}}</div>
+<div style="color: #A3ADBF; font-size: 13px;">{{keptNote}}</div>
+</div>
+<button class="send" onClick="{{send}}" disabled="{{sendOff}}">{{sendLabel}}</button>
+</div>
+<sc-if value="{{sent}}" hint-placeholder-val="{{ false }}">
+<div class="fade" role="status" style="border-radius: 10px; padding: 12px 16px; background: #1F3329; color: #BFE0CC; font-weight: 600;">{{sentText}}</div>
+</sc-if>
+</div>
+</section>
+<div style="font-size: 13px; line-height: 19px; color: #8A95A8;">Customer details are real rows from Churn_Modelling.csv. Yearly value is the customer's EstimatedSalary, which the pipeline uses as revenue. Risk for customers who stayed, the size of each driver and each offer's effect are sample values; wire them to the model output, SHAP drivers and the uplift config.</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1300}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sel: 0, q: '', offer: -1, kept: 0, sent: false, on: false };
+  }
+  componentDidMount() { this._a = setTimeout(() => this.setState({ on: true }), 250); }
+  componentWillUnmount() { clearTimeout(this._a); cancelAnimationFrame(this._raf); }
+  people() {
+    if (this._p) return this._p;
+    const rows = [
+      ['15671591', 'Castiglione', 'Spain', 'M', 52, 3, 96196, 4, 439, 0, 198875, 0.995, 1],
+      ['15616213', 'Levy', 'Germany', 'F', 51, 9, 138215, 1, 555, 0, 198715, 0.995, 1],
+      ['15600399', 'Trentino', 'France', 'M', 60, 4, 0, 1, 598, 0, 197727, 0.995, 1],
+      ['15666548', 'Chung', 'Germany', 'F', 56, 2, 111920, 3, 466, 0, 197634, 0.995, 1],
+      ['15815316', 'Kennedy', 'France', 'M', 50, 9, 76817, 4, 644, 0, 196371, 0.995, 1],
+      ['15655123', 'Dumetolisa', 'Spain', 'F', 45, 9, 131355, 3, 505, 0, 195395, 0.995, 1],
+      ['15616550', 'Chidiebele', 'Germany', 'M', 44, 10, 116363, 2, 698, 0, 198059, 0.38, 0],
+      ['15588537', 'Robinson', 'Spain', 'F', 41, 9, 109013, 1, 615, 0, 196500, 0.22, 0]
+    ];
+    this._p = rows.map(r => ({ id: r[0], surname: r[1], country: r[2], g: r[3], age: r[4], tenure: r[5], bal: r[6], prod: r[7], cs: r[8], active: r[9], value: r[10], p: r[11], left: r[12] === 1 }));
+    return this._p;
+  }
+  band(p) {
+    return p >= 0.5 ? ['High risk', '#D0848E', '#4A2530'] : p >= 0.25 ? ['Medium risk', '#C9A26B', '#3A2F22'] : ['Low risk', '#8DB59E', '#1F3329'];
+  }
+  offers(c) {
+    const him = c.g === 'M' ? 'his' : 'her';
+    return [
+      { label: 'Call from relationship manager', desc: 'A personal review of ' + him + ' accounts and products.', cost: 900, f: 0.5 },
+      { label: 'Better savings rate', desc: 'A higher interest rate on ' + him + ' balance for 6 months.', cost: 500, f: 0.65 },
+      { label: 'Waive account fees', desc: 'No account fees for a year.', cost: 300, f: 0.8 }
+    ];
+  }
+  keepOf(c, o) { return Math.max(0, c.value * (c.p - c.p * o.f) - o.cost); }
+  choose(i) {
+    cancelAnimationFrame(this._raf);
+    this.setState({ sel: i, offer: -1, kept: 0, sent: false });
+  }
+  pickOffer(i) {
+    const c = this.people()[this.state.sel];
+    const to = this.keepOf(c, this.offers(c)[i]);
+    const from = this.state.kept;
+    this.setState({ offer: i, sent: false });
+    cancelAnimationFrame(this._raf);
+    let t0 = null;
+    const step = (ts) => { if (t0 == null) t0 = ts; const t = Math.min(1, (ts - t0) / 800), e = 1 - Math.pow(1 - t, 3); this.setState({ kept: from + (to - from) * e }); if (t < 1) this._raf = requestAnimationFrame(step); };
+    this._raf = requestAnimationFrame(step);
+  }
+  drivers(c) {
+    const D = [];
+    if (c.prod === 4) D.push(['Holds 4 bank products', 1.5, 'All 60 customers with 4 products in the data left the bank.']);
+    if (c.prod === 3) D.push(['Holds 3 bank products', 1.3, '83% of customers with 3 products left the bank.']);
+    if (c.prod === 2) D.push(['Holds 2 bank products', -0.7, 'The most loyal group: only 8% of customers with 2 products left.']);
+    if (c.active === 0) D.push(['Not an active member', 1.0, 'No recent use of the account, a strong early sign of leaving.']);
+    if (c.age >= 50) D.push(['Age ' + c.age, 1.0, 'Customers aged 50 and over leave far more often than younger ones.']);
+    else if (c.age >= 44) D.push(['Age ' + c.age, 0.6, 'Risk rises steadily through the mid 40s.']);
+    else D.push(['Age ' + c.age, -0.3, 'Younger customers tend to stay.']);
+    if (c.country === 'Germany') D.push(['Based in Germany', 0.6, 'German customers leave about twice as often as French or Spanish ones.']);
+    if (c.cs < 520) D.push(['Low credit score (' + c.cs + ')', 0.35, 'Below most customers, which adds some risk.']);
+    if (c.tenure <= 3) D.push(['Only ' + c.tenure + ' years with the bank', 0.25, 'A shorter relationship is easier to walk away from.']);
+    if (c.tenure >= 9) D.push([c.tenure + ' years with the bank', -0.2, 'A long relationship lowers the risk a little.']);
+    return D.sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 5);
+  }
+  renderVals() {
+    const { sel, q, offer, kept, sent, on } = this.state;
+    const P = this.people();
+    const c = P[sel];
+    const full = (v) => Math.round(v).toLocaleString('en-US');
+    const title = (x) => (x.g === 'M' ? 'Mr ' : 'Ms ') + x.surname;
+    const he = c.g === 'M' ? 'He' : 'She';
+    const O = this.offers(c);
+    const keeps = O.map(o => this.keepOf(c, o));
+    const best = keeps.indexOf(Math.max.apply(null, keeps));
+    const p = !on ? 0 : offer < 0 ? c.p : c.p * O[offer].f;
+    const b = this.band(p), b0 = this.band(c.p);
+    const pctOf = (x) => x >= 0.99 ? '99%+' : Math.round(x * 100) + '%';
+    const ql = q.trim().toLowerCase();
+    const shown = P.map((x, i) => ({ x, i })).filter(({ x }) => !ql || x.surname.toLowerCase().includes(ql) || x.id.includes(ql));
+    const story = c.p >= 0.5
+      ? title(c) + ' is very likely to leave. ' + he + ' is worth ' + full(c.value) + ' a year, so ' + full(c.value * c.p) + ' of value is at risk.'
+      : title(c) + ' is fairly safe for now. ' + he + ' is worth ' + full(c.value) + ' a year, with ' + full(c.value * c.p) + ' of value at risk.';
+    const D = this.drivers(c);
+    const dmax = Math.max.apply(null, D.map(d => Math.abs(d[1])));
+    return {
+      q, onQ: (e) => this.setState({ q: e.target.value }),
+      countText: shown.length + ' of ' + P.length + ' customers, highest value at risk first',
+      empty: shown.length === 0,
+      list: shown.map(({ x, i }) => { const bb = this.band(x.p); return {
+        name: title(x), sub: x.country + ', worth ' + Math.round(x.value / 1000) + 'K a year',
+        band: bb[0], c: bb[1], soft: bb[2], cls: sel === i ? 'pick on' : 'pick', pressed: sel === i ? 'true' : 'false',
+        pick: () => this.choose(i) }; }),
+      cur: {
+        name: title(c), id: c.id, initials: c.surname.slice(0, 2).toUpperCase(),
+        about: c.age + ' years old, based in ' + c.country + ', with the bank for ' + c.tenure + ' years',
+        story, sample: !c.left, left: c.left
+      },
+      len: (508.94 * p).toFixed(1), bandC: b[1], bandSoft: b[2], band: b[0],
+      pctText: pctOf(p), deltaText: offer < 0 ? '' : 'down from ' + pctOf(c.p),
+      facts: [
+        ['Yearly value', full(c.value), 'Estimated salary, used as revenue', c.p >= 0.5],
+        ['Account balance', full(c.bal), c.bal === 0 ? 'Empty account' : 'Money held with the bank', false],
+        ['Bank products', String(c.prod), 'Accounts, cards, loans held', c.prod >= 3],
+        ['Credit score', String(c.cs), c.cs < 520 ? 'Below most customers' : 'Around average', c.cs < 520],
+        ['Active member', c.active ? 'Yes' : 'No', c.active ? 'Uses the account' : 'No recent activity', !c.active],
+        ['Years with bank', String(c.tenure), c.tenure <= 3 ? 'Fairly new' : 'Established', c.tenure <= 3]
+      ].map(([label, value, note, flag]) => ({ label, value, note, edge: flag ? '#D0848E' : '#34446A', nc: flag ? '#D0848E' : '#8A95A8' })),
+      drivers: D.map(([label, v, why], i) => ({
+        label, why, word: v > 0 ? (v >= 1 ? 'Raises risk a lot' : 'Raises risk') : 'Lowers risk',
+        c: v > 0 ? '#D0848E' : '#8DB59E', w: on ? (Math.abs(v) / dmax * 100).toFixed(1) + '%' : '0%', dl: (150 + i * 90) + 'ms'
+      })),
+      offers: O.map((o, i) => ({
+        label: o.label, desc: o.desc, cost: full(o.cost), keep: full(keeps[i]), pct: pctOf(c.p * o.f), best: i === best,
+        cls: offer === i ? 'offer on' : 'offer', checked: offer === i ? 'true' : 'false', pick: () => this.pickOffer(i)
+      })),
+      keptText: full(kept),
+      keptNote: offer < 0 ? 'Pick an offer to see what it keeps.' : 'After paying ' + full(O[offer].cost) + ' for the offer.',
+      sendOff: offer < 0 || sent, sendLabel: sent ? 'Offer sent' : 'Send offer',
+      send: () => this.setState({ sent: true }),
+      sent: sent && offer >= 0,
+      sentText: offer >= 0 ? O[offer].label + ' sent for ' + title(c) + '.' : ''
+    };
+  }
+}
+</script>
+</body>
+</html>

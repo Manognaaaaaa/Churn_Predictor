@@ -62,4 +62,6 @@ def model_metrics():
         "test": m.get("test", {}),
         "threshold": thr,
         "calibration_curve": m.get("calibration_curve", []),
+        "leakage_check": m.get("leakage_check"),
+        "trained_at": m.get("trained_at"),
     }

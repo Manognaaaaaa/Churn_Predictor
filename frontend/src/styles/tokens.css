@@ -1,57 +1,66 @@
 :root {
-  /* grounds */
-  --bg-000: #050909;      /* outer edge / vignette, never behind small text */
-  --bg-100: #0b1414;      /* page ground */
-  --bg-glow: #12302d;     /* radial glow, top-left, decoration only */
-  --surface-100: #111b1b; /* panels, tables, customer detail */
-  --surface-200: #172221; /* KPI tiles, table header row, inputs, inactive segmented options */
-  --surface-300: #20302e; /* hover + selected rows, pressed controls */
-  --line-100: #1f2b2a;    /* hairline borders on panels and between rows */
-  --line-200: #6a817e;    /* control borders (inputs, secondary buttons) */
+  --bg: #060B16;
+  --bg-raised: #0A1324;          /* modal, panels */
+  --panel-a: rgba(16,28,52,.65); /* panel gradient top */
+  --panel-b: rgba(10,18,36,.65); /* panel gradient bottom */
+  --line: rgba(132,160,210,.14);
+  --line-strong: rgba(132,160,210,.28);
+  --grid-line: rgba(132,160,210,.06);
 
-  /* text */
-  --ink: #e9eaed;         /* values, body */
-  --ink-muted: #97a7a7;   /* labels, table headers, secondary */
-  --ink-faint: #7f8f8e;   /* captions only; NOT on surface-300 */
-  --ink-inverse: #0b1414; /* text on cyan-strong, gold, field */
+  --ink: #E6EDF8;
+  --ink-soft: #B4C1D6;
+  --ink-muted: #8494AE;
+  --ink-faint: #6F84A6;
+  --ink-inverse: #07101F;
 
-  /* accent + selection */
-  --cyan: #8ce2df;        /* the only accent: active tab, links, forecast line, focus ring */
-  --cyan-strong: #4fbdb8; /* primary button fill */
-  --cyan-soft: #0f2e2d;   /* active segmented option, recommendation card ground */
-  --gold: #cbac7b;        /* the ONE selected / best item in a set */
-  --gold-soft: #2a2418;
+  --blue-100: #C9DCFF;  /* high risk, highlights */
+  --blue-200: #8DB8FF;  /* accent: active tab, focus, links */
+  --blue-300: #7FA6E6;  /* medium risk */
+  --blue-400: #5A7CB3;  /* low risk */
+  --blue-500: #3B6FD8;  /* gradient start, strong fills */
+  --blue-700: #142A55;
+  --blue-900: #0C1830;
 
-  /* risk bands */
-  --red: #f07890;   --red-soft: #3a1820;
-  --amber: #e9b35f; --amber-soft: #33260f;
-  --green: #80ce9f; --green-soft: #12301f;
-  --purple: #c4a6f7; --purple-soft: #241c38; /* neutral chart dots only */
-  --field: #f2f4f4; /* white "prompt" input */
+  --focus: 0 0 0 2px #060B16, 0 0 0 4px #8DB8FF;
+  --ease: cubic-bezier(.22,1,.36,1);
+  --ease-io: cubic-bezier(.65,0,.35,1);
+  --spring: cubic-bezier(.34,1.45,.64,1);
 
-  /* charts */
-  --chart-actual: var(--ink);
-  --chart-forecast: var(--cyan);
-  --chart-interval: #5b6f6d;
-  --chart-grid: #16211f;
-  --chart-axis: var(--ink-faint);
+  /* channels for alpha washes of the colours above */
+  --ink-rgb: 230,237,248;
+  --blue-100-rgb: 201,220,255;
+  --blue-200-rgb: 141,184,255;
+  --blue-500-rgb: 59,111,216;
+  --line-rgb: 132,160,210;
+  --bg-rgb: 6,11,22;
+  --bg-raised-rgb: 10,19,36;
 
-  /* type */
-  --font-sans: Manrope, "Segoe UI", system-ui, sans-serif;
-  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  /* extra surface tones used by the reference */
+  --bg-intro: #050A14;
+  --surface-hover: rgba(30,52,92,.6);
+  --surface-glass: rgba(16,28,52,.5);
+  --track: rgba(132,160,210,.14);
+  --bar-low: #3A5683;
+  --white: #FFFFFF;
+  --ink-chip: #C7D3E6;
+  --ink-poster: #9FB0CA;
+  --budget-card-a: #10203F;
+  --budget-card-b: #0A1428;
+  --budget-strat-on: #0F1E3B;
+  --budget-strat-off: #0A1428;
+  --offer-1: #C9DCFF;
+  --offer-2: #8DB8FF;
+  --offer-3: #7FA6E6;
+  --offer-4: #5A7CB3;
+  --offer-5: #3B6FD8;
 
-  /* spacing (1.5 renamed to 1_5 so it is a valid var name) */
-  --space-1: 4px; --space-1_5: 6px; --space-2: 8px;
-  --space-3: 12px; --space-4: 16px; --space-6: 24px;
+  /* poster backgrounds by country */
+  --poster-de: radial-gradient(ellipse 80% 90% at 85% 10%, #2D5BB8 0%, transparent 60%), linear-gradient(150deg, #142A55 0%, #0C1830 100%);
+  --poster-fr: radial-gradient(ellipse 80% 90% at 85% 10%, #3E7BC7 0%, transparent 60%), linear-gradient(150deg, #13304F 0%, #0B1629 100%);
+  --poster-es: radial-gradient(ellipse 80% 90% at 85% 10%, #4B5FC4 0%, transparent 60%), linear-gradient(150deg, #1C2457 0%, #0D1430 100%);
+  --glow-de: rgba(45,91,184,.55);
+  --glow-fr: rgba(62,123,199,.5);
+  --glow-es: rgba(75,95,196,.5);
 
-  /* radius */
-  --radius-sm: 6px; --radius-md: 12px; --radius-lg: 18px; --radius-pill: 999px;
-
-  /* depth */
-  --shadow-panel: inset 0 1px 0 0 rgba(255,255,255,0.04), 0 20px 40px -16px rgba(0,0,0,0.6);
-  --glow-gold: 0 0 0 1px rgba(203,172,123,0.75), 0 0 28px 0 rgba(203,172,123,0.28);
-  --glow-cyan: 0 0 0 1px rgba(140,226,223,0.35), 0 0 24px 0 rgba(140,226,223,0.18);
-  --glow-red: 0 0 0 1px rgba(240,120,144,0.35), 0 0 32px 0 rgba(240,120,144,0.18);
-  --focus-ring: 0 0 0 2px #0b1414, 0 0 0 4px #8ce2df;
+  --font: "Geist", "Segoe UI", system-ui, sans-serif;
 }

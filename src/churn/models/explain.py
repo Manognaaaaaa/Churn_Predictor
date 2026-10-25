@@ -11,8 +11,15 @@ def _pretty(name: str) -> str:
                 .replace("_", " ").strip().capitalize())
 
 
-def top_drivers(x: pd.DataFrame, model, feature_names: list[str], k: int = 5) -> list[list[dict]]:
-    """Return a list (per row) of {feature, label, contribution} dicts, top-k by |SHAP|."""
+def _num(v) -> float | None:
+    return None if v is None or v != v else float(v)
+
+
+def top_drivers(x: pd.DataFrame, model, feature_names: list[str], k: int = 5,
+                raw_values: pd.DataFrame | None = None) -> list[list[dict]]:
+    """Return a list (per row) of {feature, label, contribution[, value]} dicts, top-k by |SHAP|.
+
+    raw_values: optional unscaled feature values (same row order); adds a `value` to each driver."""
     try:
         explainer = shap.TreeExplainer(model)
         values = explainer.shap_values(x)
@@ -31,5 +38,7 @@ def top_drivers(x: pd.DataFrame, model, feature_names: list[str], k: int = 5) ->
         row = values[i]
         order = np.argsort(-np.abs(row))[:k]
         out.append([{"feature": feature_names[j], "label": _pretty(feature_names[j]),
-                     "contribution": float(row[j])} for j in order])
+                     "contribution": float(row[j]),
+                     **({"value": _num(raw_values.iloc[i][feature_names[j]])} if raw_values is not None else {})}
+                    for j in order])
     return out

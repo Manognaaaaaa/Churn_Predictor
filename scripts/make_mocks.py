@@ -49,7 +49,7 @@ def main() -> None:
         feats = rng.choice(list(FEATURES), 5, replace=False)
         contribs = np.sort(rng.normal(0, 0.3, 5))[::-1]
         drivers.append([
-            {"feature": f, "label": FEATURES[f], "contribution": float(c)}
+            {"feature": f, "label": FEATURES[f], "contribution": float(c), "value": float(rng.integers(0, 10))}
             for f, c in zip(feats, contribs)
         ])
     scores = pd.DataFrame({
@@ -61,7 +61,27 @@ def main() -> None:
         "revenue_at_risk": cal * value,
         "top_drivers": drivers,
     })
+    scores["customer_value"] = value
     scores.to_parquet(OUT / "scores.parquet", index=False)
+
+    # raw customer columns (the real pipeline writes artifacts/customers.parquet)
+    surnames = ["Hill", "Castiglione", "Levy", "Chung", "Kennedy", "Boni", "Pisano", "Walker", "Martin", "Yeh"]
+    prod = rng.integers(1, 5, N)
+    pd.DataFrame({
+        "customer_id": ids,
+        "Surname": [surnames[i % len(surnames)] for i in range(N)],
+        "Gender": rng.choice(["Male", "Female"], N),
+        "Age": rng.integers(22, 70, N),
+        "Geography": rng.choice(["France", "Germany", "Spain"], N),
+        "Tenure": rng.integers(0, 11, N),
+        "Balance": np.where(rng.random(N) < 0.3, 0.0, rng.normal(90000, 40000, N).clip(0)),
+        "NumOfProducts": prod,
+        "CreditScore": rng.integers(380, 850, N),
+        "HasCrCard": rng.integers(0, 2, N),
+        "IsActiveMember": rng.integers(0, 2, N),
+        "EstimatedSalary": value,
+        "Exited": (rng.random(N) < cal).astype(int),
+    }).to_parquet(OUT / "customers.parquet", index=False)
 
     # segments
     seg_id = rng.integers(0, len(SEGMENTS), N)
@@ -122,7 +142,7 @@ def main() -> None:
     (OUT / "allocation_summary.json").write_text(json.dumps(
         {"split": "mock", "budget_sweep": sweep}, indent=2))
 
-    print(f"Wrote 5 mock files to {OUT}")
+    print(f"Wrote 6 mock files to {OUT}")
 
 
 if __name__ == "__main__":

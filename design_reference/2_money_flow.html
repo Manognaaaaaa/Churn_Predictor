@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Money flow</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Serif:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1726}
+a{color:#E6E9EF}a:hover{color:#E6E9EF}
+.tab{display:inline-block;padding:6px 14px;border-radius:999px;font-size:14px;line-height:20px;color:#A3ADBF;text-decoration:none;transition:color .2s,background .2s}
+.tab:hover{color:#E6E9EF}
+.tab.on{background:#22355A;color:#E6E9EF;box-shadow:0 0 0 1px rgba(157,187,219,.35),0 0 24px 0 rgba(157,187,219,.18)}
+.tab:focus-visible,.grp:focus-visible{outline:none;box-shadow:0 0 0 2px #0F1726,0 0 0 4px #E6E9EF}
+.flow{stroke-dasharray:1 22;stroke-linecap:round;animation:flow 2.6s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-230}}
+.rib{transition:opacity .35s ease}
+.grp{font:inherit;font-size:13px;line-height:18px;text-align:left;padding:12px;min-height:44px;border-radius:6px;border:1px solid #26344F;background:#1B2842;color:#A3ADBF;cursor:pointer;display:flex;justify-content:space-between;gap:8px;transition:all .25s}
+.grp:hover{color:#E6E9EF}
+.grp.on{color:#E6E9EF;border-color:#E6E9EF;box-shadow:0 0 0 1px rgba(157,187,219,.75),0 0 28px 0 rgba(157,187,219,.28)}
+.bar{transition:width .8s cubic-bezier(.16,1,.3,1)}
+@media (prefers-reduced-motion: reduce){.flow{animation:none}}
+</style>
+</helmet>
+<div style="min-height: 860px; box-sizing: border-box; background: radial-gradient(ellipse 70% 50% at 20% 0%, #22355A, #0F1726 70%); color: #E6E9EF; font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 20px;">
+<header style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; padding: 20px 32px; border-bottom: 1px solid #26344F;">
+<div style="font-weight: 600; font-size: 20px; line-height: 28px;">Churn &amp; Revenue Risk</div>
+<nav aria-label="Concepts" style="display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border: 1px solid #26344F; border-radius: 999px; background: #152036;">
+<a class="tab" href="Main.dc.html">Customer galaxy</a>
+<a class="tab on" href="Flow.dc.html" aria-current="page">Money flow</a>
+<a class="tab" href="Budget.dc.html">Budget simulator</a>
+<a class="tab" href="Customer.dc.html">Customer profile</a>
+</nav>
+</header>
+<main style="max-width: 1216px; margin: 0 auto; padding: 32px; display: flex; flex-direction: column; gap: 24px;">
+<div style="display: flex; flex-direction: column; gap: 6px;">
+<h1 style="margin: 0; font-family: 'IBM Plex Serif', Georgia, serif; font-size: 32px; line-height: 40px; font-weight: 600; letter-spacing: -0.01em; max-width: 760px;">Where the 208.1M at risk comes from, and how risky it is</h1>
+<p style="margin: 0; color: #A3ADBF; max-width: 640px;">Money flows left to right: total revenue at risk, split into customer groups, then into risk levels. Hover or pick a group to trace its money.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 24px;">
+<section style="flex: 999 1 640px; min-width: 0; background: #152036; border: 1px solid #26344F; border-radius: 18px; padding: 16px; box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.04), 0 20px 40px -16px rgba(0,0,0,0.6);">
+<svg viewBox="0 0 900 480" role="img" aria-label="Flow of revenue at risk from total to customer groups to risk levels" style="width: 100%; height: auto; display: block;">
+<defs>
+<clipPath id="reveal"><rect x="0" y="0" height="480" style="width: {{clipW}}px; transition: width 2200ms cubic-bezier(.65,0,.35,1);"></rect></clipPath>
+</defs>
+<g style="clip-path: url(#reveal);">
+<sc-for list="{{ribs}}" as="r" hint-placeholder-count="0">
+<path class="rib" d="{{r.d}}" fill="{{r.c}}" onMouseEnter="{{r.enter}}" onMouseLeave="{{leave}}" style="opacity: {{r.op}}; cursor: pointer;"></path>
+</sc-for>
+<sc-for list="{{lines}}" as="l" hint-placeholder-count="0">
+<path class="flow" d="{{l.d}}" fill="none" stroke="{{l.c}}" style="stroke-width: 2px; opacity: {{l.op}}; pointer-events: none;"></path>
+</sc-for>
+</g>
+<rect x="40" y="48" width="14" height="384" rx="3" fill="#E6E9EF"></rect>
+<text x="40" y="36" fill="#E6E9EF" style="font-size: 13px; font-weight: 600;">208.1M at risk</text>
+<sc-for list="{{mids}}" as="m" hint-placeholder-count="0">
+<rect x="420" y="{{m.y}}" width="14" height="{{m.h}}" rx="3" fill="{{m.fill}}" onMouseEnter="{{m.enter}}" onMouseLeave="{{leave}}" style="cursor: pointer; transition: fill .3s;"></rect>
+<text x="442" y="{{m.ty}}" fill="#E6E9EF" style="font-size: 12px; font-weight: 600; paint-order: stroke; stroke: #152036; stroke-width: 4px; pointer-events: none;">{{m.label}} <tspan fill="#A3ADBF" style="font-weight: 400;">{{m.v}}</tspan></text>
+</sc-for>
+<sc-for list="{{rights}}" as="b" hint-placeholder-count="0">
+<rect x="846" y="{{b.y}}" width="14" height="{{b.h}}" rx="3" fill="{{b.c}}"></rect>
+<text x="838" y="{{b.ty}}" fill="{{b.c}}" style="font-size: 13px; font-weight: 600; text-anchor: end; paint-order: stroke; stroke: #152036; stroke-width: 4px;">{{b.label}}</text>
+<text x="838" y="{{b.ty2}}" fill="#E6E9EF" style="font-size: 12px; text-anchor: end; paint-order: stroke; stroke: #152036; stroke-width: 4px;">{{b.v}}</text>
+</sc-for>
+</svg>
+<div style="margin-top: 8px; font-size: 12px; line-height: 16px; color: #8A95A8;">Group totals match the current dashboard. The split from groups into risk levels uses sample shares until the API returns it.</div>
+</section>
+<aside style="flex: 1 1 280px; display: flex; flex-direction: column; gap: 8px;">
+<div style="font-size: 12px; line-height: 16px; color: #A3ADBF;">Customer groups, largest first</div>
+<sc-for list="{{list}}" as="g" hint-placeholder-count="8">
+<button class="{{g.cls}}" onClick="{{g.pick}}" onMouseEnter="{{g.enter}}" onMouseLeave="{{leave}}" aria-pressed="{{g.pressed}}">
+<span style="display: flex; flex-direction: column; gap: 6px; flex: 1;">
+<span>{{g.label}}</span>
+<span style="display: flex; height: 6px; border-radius: 999px; overflow: hidden; background: #1F2B45;">
+<span class="bar" style="width: {{g.hw}}; background: #D0848E;"></span>
+<span class="bar" style="width: {{g.mw}}; background: #C9A26B;"></span>
+<span class="bar" style="width: {{g.lw}}; background: #8DB59E;"></span>
+</span>
+</span>
+<span style="font-variant-numeric: tabular-nums; color: #E6E9EF;">{{g.v}}</span>
+</button>
+</sc-for>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":860}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { hover: -1, picked: -1, shown: false, grow: false };
+  }
+  componentDidMount() {
+    this._a = setTimeout(() => this.setState({ shown: true }), 120);
+    this._b = setTimeout(() => this.setState({ grow: true }), 900);
+  }
+  componentWillUnmount() { clearTimeout(this._a); clearTimeout(this._b); }
+  geo() {
+    if (this._geo) return this._geo;
+    const G = [
+      ['Customers in Germany', 52.0, [0.55, 0.25, 0.20]],
+      ['Customers in France', 45.5, [0.40, 0.30, 0.30]],
+      ['Germany, group B', 38.4, [0.50, 0.28, 0.22]],
+      ['No balance, group B', 18.2, [0.35, 0.30, 0.35]],
+      ['Customers in Spain', 15.3, [0.45, 0.30, 0.25]],
+      ['Spain, group B', 14.9, [0.42, 0.28, 0.30]],
+      ['No account balance', 14.0, [0.30, 0.30, 0.40]],
+      ['Spain, group C', 9.8, [0.38, 0.32, 0.30]]
+    ];
+    const k = (440 - 56) / 208.1;
+    const rib = (x0, a0, b0, x1, a1, b1) => {
+      const xm = (x0 + x1) / 2;
+      return 'M' + x0 + ' ' + a0 + ' C' + xm + ' ' + a0 + ' ' + xm + ' ' + a1 + ' ' + x1 + ' ' + a1 + ' L' + x1 + ' ' + b1 + ' C' + xm + ' ' + b1 + ' ' + xm + ' ' + b0 + ' ' + x0 + ' ' + b0 + ' Z';
+    };
+    const mid = (x0, y0, x1, y1) => { const xm = (x0 + x1) / 2; return 'M' + x0 + ' ' + y0 + ' C' + xm + ' ' + y0 + ' ' + xm + ' ' + y1 + ' ' + x1 + ' ' + y1; };
+    const bandTot = [0, 0, 0];
+    G.forEach(g => g[2].forEach((s, j) => { bandTot[j] += g[1] * s; }));
+    const right = []; let ry = 20;
+    bandTot.forEach((v, j) => { right.push({ y: ry, h: v * k, v }); ry += v * k + 28; });
+    const rCursor = right.map(r => r.y);
+    const ribs1 = [], ribs2 = [], mids = [];
+    let ly = 48, my = 20;
+    G.forEach((g, i) => {
+      const h = g[1] * k;
+      ribs1.push({ i, d: rib(54, ly, ly + h, 420, my, my + h), line: mid(54, ly + h / 2, 420, my + h / 2) });
+      mids.push({ i, y: my, h, label: g[0], v: g[1].toFixed(1) + 'M' });
+      let sy = my;
+      g[2].forEach((s, j) => {
+        const sh = g[1] * s * k;
+        ribs2.push({ i, j, d: rib(434, sy, sy + sh, 846, rCursor[j], rCursor[j] + sh), line: mid(434, sy + sh / 2, 846, rCursor[j] + sh / 2) });
+        rCursor[j] += sh; sy += sh;
+      });
+      ly += h; my += h + 8;
+    });
+    this._geo = { G, ribs1, ribs2, mids, right };
+    return this._geo;
+  }
+  renderVals() {
+    const { G, ribs1, ribs2, mids, right } = this.geo();
+    const BC = ['#D0848E', '#C9A26B', '#8DB59E'];
+    const BL = ['High risk', 'Medium risk', 'Low risk'];
+    const focus = this.state.hover >= 0 ? this.state.hover : this.state.picked;
+    const enterG = (i) => () => this.setState({ hover: i });
+    const ribs = ribs1.map(r => ({ d: r.d, c: '#E6E9EF', op: focus < 0 ? 0.16 : (focus === r.i ? 0.42 : 0.04), enter: enterG(r.i) }))
+      .concat(ribs2.map(r => ({ d: r.d, c: BC[r.j], op: focus < 0 ? 0.26 : (focus === r.i ? 0.62 : 0.04), enter: enterG(r.i) })));
+    const lines = ribs1.map(r => ({ d: r.line, c: '#E6E9EF', op: focus < 0 || focus === r.i ? 0.55 : 0 }))
+      .concat(ribs2.map(r => ({ d: r.line, c: '#E6E9EF', op: focus < 0 ? 0.35 : (focus === r.i ? 0.7 : 0) })));
+    return {
+      clipW: this.state.shown ? 900 : 0,
+      ribs, lines,
+      mids: mids.map(m => ({ y: m.y.toFixed(1), h: m.h.toFixed(1), ty: (m.y + m.h / 2 + 4).toFixed(1), label: m.label, v: m.v, fill: focus === m.i ? '#E6E9EF' : '#4A5D80', enter: enterG(m.i) })),
+      rights: right.map((r, j) => ({ y: r.y.toFixed(1), h: r.h.toFixed(1), ty: (r.y + r.h / 2 - 2).toFixed(1), ty2: (r.y + r.h / 2 + 14).toFixed(1), c: BC[j], label: BL[j], v: r.v.toFixed(1) + 'M' })),
+      list: G.map((g, i) => ({
+        label: g[0], v: g[1].toFixed(1) + 'M',
+        cls: focus === i ? 'grp on' : 'grp', pressed: this.state.picked === i ? 'true' : 'false',
+        hw: this.state.grow ? (g[2][0] * 100) + '%' : '0%',
+        mw: this.state.grow ? (g[2][1] * 100) + '%' : '0%',
+        lw: this.state.grow ? (g[2][2] * 100) + '%' : '0%',
+        enter: enterG(i),
+        pick: () => this.setState({ picked: this.state.picked === i ? -1 : i })
+      })),
+      leave: () => this.setState({ hover: -1 })
+    };
+  }
+}
+</script>
+</body>
+</html>

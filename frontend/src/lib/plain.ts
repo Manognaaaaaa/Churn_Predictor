@@ -1,137 +1,85 @@
-import { fmtMoney } from "./format";
-import type { Band } from "../components/ui/BandPill";
+import type { Band, Customer } from "../api";
 
-/** Currencies from configs/config.yaml: customer values are EUR, the revenue forecast series is GBP. */
-export const CUSTOMER_CURRENCY = "€";
-export const FORECAST_CURRENCY = "£";
-
-/** Probability cut-offs of configs/config.yaml `risk_bands` (calibrated probability). */
-export const BAND_LIMITS = { greenMax: 0.2, amberMax: 0.5 };
-
-const cleanBase = (raw: string) =>
-  raw.replace(/\s*\([+-]?[\d.]+ sd\)/, "").replace(/\s*#\d+\s*$/, "").trim();
-
-function baseLabel(raw: string): string {
-  const base = cleanBase(raw);
-  const negative = /\(-[\d.]+ sd\)/.test(raw);
-  if (base.startsWith("Geography_")) return `Customers in ${base.slice("Geography_".length).replace(/_/g, " ")}`;
-  if (base === "zero_balance") return negative ? "Customers with an account balance" : "Customers with no account balance";
-  return base.replace(/_/g, " ");
+export function customerName(c: Pick<Customer, "surname" | "gender" | "customer_id">): string {
+  if (!c.surname) return `Customer ${c.customer_id}`;
+  const g = (c.gender ?? "").toLowerCase();
+  return `${g === "male" ? "Mr " : g === "female" ? "Ms " : ""}${c.surname}`;
 }
+export const initials = (c: Pick<Customer, "surname">) => (c.surname ?? "?").slice(0, 2).toUpperCase();
+export const pronoun = (c: Pick<Customer, "gender">) => ((c.gender ?? "").toLowerCase() === "male" ? "He" : (c.gender ?? "").toLowerCase() === "female" ? "She" : "They");
+export const possessive = (c: Pick<Customer, "gender">) => ((c.gender ?? "").toLowerCase() === "male" ? "his" : (c.gender ?? "").toLowerCase() === "female" ? "her" : "their");
 
-/** Readable name for one raw segment name, without group letters. */
-export function segmentLabel(raw: string | null | undefined): string {
-  return raw ? baseLabel(raw) : "–";
-}
+export const BAND_WORD: Record<Band, string> = { red: "High risk", amber: "Medium risk", green: "Low risk" };
+/** Risk is shown by blue lightness plus the word, never colour alone. */
+export const BAND_VAR: Record<Band, string> = { red: "var(--blue-100)", amber: "var(--blue-300)", green: "var(--blue-400)" };
 
-/**
- * Builds a labeller from the full list of segment names. Names that share a readable label get
- * group letters in order of first appearance (A, B, C...).
- */
-export function buildSegmentLabeler(names: string[]): (raw: string | null | undefined) => string {
-  const byLabel = new Map<string, string[]>();
-  for (const n of names) {
-    const l = baseLabel(n);
-    byLabel.set(l, [...(byLabel.get(l) ?? []), n]);
+export function posterFor(country: string | null | undefined): { bg: string; glow: string } {
+  switch (country) {
+    case "France": return { bg: "var(--poster-fr)", glow: "var(--glow-fr)" };
+    case "Spain": return { bg: "var(--poster-es)", glow: "var(--glow-es)" };
+    default: return { bg: "var(--poster-de)", glow: "var(--glow-de)" };
   }
+}
+
+const OFFERS: Record<string, { label: string; desc: (c: Pick<Customer, "gender">) => string }> = {
+  value_discount: { label: "Better savings rate", desc: (c) => `A higher interest rate on ${possessive(c)} balance for 6 months.` },
+  fee_waiver: { label: "Waive account fees", desc: () => "No account fees for a year." },
+  service_call: { label: "Call from relationship manager", desc: (c) => `A personal review of ${possessive(c)} accounts and products.` },
+  retention_bonus: { label: "Loyalty bonus", desc: () => "A cash bonus for staying with the bank." },
+  loyalty_email: { label: "Personal email from the bank", desc: () => "A short personal note about what the bank can do for them." },
+};
+export function offerLabel(code: string): string {
+  return OFFERS[code]?.label ?? code.replace(/_/g, " ").replace(/^./, (s) => s.toUpperCase());
+}
+export function offerDesc(code: string, c: Pick<Customer, "gender">): string {
+  return OFFERS[code]?.desc(c) ?? "";
+}
+const OFFER_COLOR: Record<string, string> = {
+  value_discount: "var(--offer-1)", fee_waiver: "var(--offer-3)", service_call: "var(--offer-5)",
+  retention_bonus: "var(--offer-2)", loyalty_email: "var(--offer-4)",
+};
+export const offerColor = (code: string) => OFFER_COLOR[code] ?? "var(--offer-4)";
+
+const base = (raw: string) => raw.replace(/\s*\([+-]?[\d.]+ sd\)/, "").replace(/\s*#\d+\s*$/, "").trim();
+function label(raw: string): string {
+  const b = base(raw);
+  if (b.startsWith("Geography_")) return `Customers in ${b.slice(10).replace(/_/g, " ")}`;
+  if (b === "zero_balance") return /\(-[\d.]+ sd\)/.test(raw) ? "Customers with a balance" : "Customers with no balance";
+  return b.replace(/_/g, " ");
+}
+/** Readable group names: Geography_Germany (+1.7 sd) #7 becomes "Customers in Germany (group B)". Letters follow list order. */
+export function segmentLabeler(names: string[]): (raw: string | null | undefined) => string {
+  const groups = new Map<string, string[]>();
+  for (const n of names) groups.set(label(n), [...(groups.get(label(n)) ?? []), n]);
   return (raw) => {
     if (!raw) return "–";
-    const l = baseLabel(raw);
-    const group = byLabel.get(l) ?? [];
-    return group.length > 1 && group.includes(raw) ? `${l} (group ${String.fromCharCode(65 + group.indexOf(raw))})` : l;
+    const l = label(raw);
+    const g = groups.get(l) ?? [];
+    return g.length > 1 && g.includes(raw) ? `${l} (group ${String.fromCharCode(65 + g.indexOf(raw))})` : l;
   };
 }
 
-const OFFERS: Record<string, string> = {
-  loyalty_email: "Loyalty email",
-  fee_waiver: "Waive fees",
-  service_call: "Personal service call",
-  retention_bonus: "Retention bonus",
-  value_discount: "Discount on plan",
-};
-export function offerLabel(code: string | null | undefined): string {
-  if (!code) return "–";
-  if (OFFERS[code]) return OFFERS[code];
-  const s = code.replace(/_/g, " ");
-  return s.charAt(0).toUpperCase() + s.slice(1);
+/** Plain name for a model feature at a value, e.g. NumOfProducts=4 becomes "Holds 4 bank products". */
+export function featureLabel(feature: string, value: number | null): string {
+  const n = value == null ? null : Math.round(value);
+  switch (feature) {
+    case "NumOfProducts": return n == null ? "Number of bank products" : `Holds ${n} bank product${n === 1 ? "" : "s"}`;
+    case "IsActiveMember": return n === 0 ? "Not an active member" : "Active member";
+    case "Age": return n == null ? "Age" : `Age ${n}`;
+    case "Tenure": return n == null ? "Years with the bank" : n === 1 ? "1 year with the bank" : `${n} years with the bank`;
+    case "CreditScore": return n == null ? "Credit score" : `Credit score ${n}`;
+    case "Balance": return n === 0 ? "Empty account" : "Account balance";
+    case "zero_balance": return n === 1 ? "Empty account" : "Money held with the bank";
+    case "HasCrCard": return n === 1 ? "Has a credit card" : "No credit card";
+    case "customer_value": return "Yearly value";
+    case "balance_value_ratio": return "Balance compared with yearly value";
+    case "Gender_Female": return n === 1 ? "Female customer" : "Not a female customer";
+    case "Gender_Male": return n === 1 ? "Male customer" : "Not a male customer";
+    default:
+      if (feature.startsWith("Geography_")) {
+        const c = feature.slice(10);
+        return n === 1 ? `Based in ${c}` : `Not based in ${c}`;
+      }
+      return feature.replace(/_/g, " ").replace(/^./, (s) => s.toUpperCase());
+  }
 }
-
-export function riskWord(band: Band): string {
-  return band === "red" ? "High risk" : band === "amber" ? "Medium risk" : "Low risk";
-}
-
-/** Churn probability as a manager reads it. */
-export function chanceText(p: number | null | undefined): string {
-  if (p == null || isNaN(p)) return "–";
-  if (p >= 0.99) return "99%+";
-  if (p <= 0.01) return "under 1%";
-  return `${Math.round(100 * p)}%`;
-}
-
-/** Compact money for headlines: 208.1M, 1.93M, 34.2K. Full numbers stay in tables. */
-export function money(n: number | null | undefined, symbol = CUSTOMER_CURRENCY): string {
-  if (n == null || isNaN(n)) return "–";
-  const a = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  let body: string;
-  if (a >= 1e9) body = `${(a / 1e9).toFixed(2)}B`;
-  else if (a >= 1e6 || Math.round(a / 1e3) >= 1000) body = `${(a / 1e6).toFixed(a < 1e7 ? 2 : 1)}M`;
-  else if (a >= 1e3) body = a < 1e5 ? `${(a / 1e3).toFixed(1)}K` : `${(a / 1e3).toFixed(0)}K`;
-  else body = fmtMoney(a);
-  return `${sign}${symbol}${body}`;
-}
-
-/** Full money with symbol, for sentences and tooltips. */
-export function moneyFull(n: number | null | undefined, symbol = CUSTOMER_CURRENCY): string {
-  return n == null || isNaN(n) ? "–" : `${symbol}${fmtMoney(n)}`;
-}
-
-const DRIVERS: Record<string, string> = {
-  Age: "Age",
-  Balance: "Account balance",
-  CreditScore: "Credit score",
-  Gender_Female: "Female customer",
-  Gender_Male: "Male customer",
-  HasCrCard: "Has a credit card",
-  IsActiveMember: "Active member",
-  NumOfProducts: "Number of products",
-  Tenure: "Years as a customer",
-  EstimatedSalary: "Estimated salary",
-  customer_value: "Estimated salary",
-  balance_value_ratio: "Balance compared with salary",
-  zero_balance: "No account balance",
-};
-export function driverLabel(feature: string, fallback = ""): string {
-  if (DRIVERS[feature]) return DRIVERS[feature];
-  if (feature.startsWith("Geography_")) return `Based in ${feature.slice("Geography_".length)}`;
-  const s = (fallback || feature).replace(/_/g, " ");
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-export const MODEL_NAMES: Record<string, string> = {
-  logreg_mle: "Logistic regression",
-  logreg_map: "Regularised logistic regression",
-  naive_bayes: "Naive Bayes",
-  random_forest: "Random Forest",
-  xgboost: "XGBoost",
-  lstm: "Sequence neural network",
-};
-
-const pc = (x: number) => `${Math.round(x * 100)}%`;
-
-export const GLOSSARY = {
-  revenueAtRisk:
-    "The revenue we expect to lose in the next period if nothing is done. It is each customer's value multiplied by their chance of leaving, added up.",
-  chance: "The model's estimate of how likely this customer is to cancel in the next period.",
-  band: `Customers are grouped by chance of leaving: high is above ${pc(BAND_LIMITS.amberMax)}, medium is between ${pc(BAND_LIMITS.greenMax)} and ${pc(BAND_LIMITS.amberMax)}, low is ${pc(BAND_LIMITS.greenMax)} or below.`,
-  group: "Customers the model found to behave alike. The name describes what most of them have in common.",
-  saved: "The revenue we expect to keep by spending the budget on the offers shown, compared with doing nothing.",
-  returnOnBudget: "Expected revenue saved divided by money spent.",
-  prAuc:
-    "Precision at top (PR-AUC): how well the model puts customers who really leave at the top of the list. 100% is perfect. The share of leavers is what a random list scores.",
-  brier: "Accuracy of the percentages (Brier score): average error of the predicted chances. Lower is better, 0 is perfect.",
-  ece: "Calibration gap (ECE): how far the predicted chances are from what really happened. Lower is better. 2% means a customer shown as 30% really leaves between about 28% and 32% of the time.",
-  bestReturn: "Spends the budget where each unit of money is expected to keep the most revenue, within a limit per customer.",
-  sameAmount: "Gives every customer who gets an offer the same amount of the budget.",
-  mostAtRisk: "Gives the largest share of the budget to the customers with the highest chance of leaving.",
-} as const;

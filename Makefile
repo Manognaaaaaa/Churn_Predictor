@@ -1,4 +1,4 @@
-.PHONY: help mocks data features train risk allocate claims api web test
+.PHONY: help mocks data features train oof curve risk allocate claims api web test
 
 help:
 	@echo "Targets:"
@@ -24,6 +24,10 @@ features:
 
 train:
 	PYTHONPATH=src python -m churn.pipeline.run_train
+	PYTHONPATH=src python -m churn.pipeline.run_oof
+
+oof:
+	PYTHONPATH=src python -m churn.pipeline.run_oof
 
 risk:
 	PYTHONPATH=src python -m churn.pipeline.run_risk
@@ -33,6 +37,9 @@ allocate:
 
 claims:
 	PYTHONPATH=src python -m churn.pipeline.run_claims
+
+curve:
+	PYTHONPATH=src python scripts/make_curves.py
 
 api:
 	PYTHONPATH=src python -m uvicorn api.app:app --port 8000

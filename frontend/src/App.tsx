@@ -1,74 +1,83 @@
-import { useCallback, useMemo, useState } from "react";
-import Overview from "./pages/Overview";
-import ClientLookup from "./pages/ClientLookup";
-import BudgetPlanner from "./pages/BudgetPlanner";
-import ModelData from "./pages/ModelData";
-import UiPreview from "./pages/UiPreview";
-import { AppHeader, SegmentedControl } from "./components/ui";
-import { ViewModeProvider, useViewMode } from "./lib/viewMode";
-import type { ViewMode } from "./lib/viewMode";
-import { SessionContext } from "./lib/session";
-import type { CustomerFilter, LastAllocation } from "./lib/session";
+import { Suspense, lazy, useCallback, useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useMetrics } from "./api";
+import { Header } from "./components/Header";
+import type { Screen } from "./components/Header";
+import { Intro, introAlreadySeen, markIntroSeen } from "./components/Intro";
+import { ProfileModal } from "./components/ProfileModal";
+import { SearchPanel } from "./components/SearchPanel";
+import { Skeleton } from "./components/bits";
+import { useReducedMotion } from "./hooks/useReducedMotion";
+import { AppProvider, useApp } from "./state/app";
+import Home from "./pages/Home";
+import Customers from "./pages/Customers";
+import Budget from "./pages/Budget";
 
-const TABS = [
-  { value: "overview", analyst: "Overview", manager: "Summary" },
-  { value: "lookup", analyst: "Client Lookup", manager: "Customers" },
-  { value: "budget", analyst: "Budget Planner", manager: "Retention budget" },
-  { value: "model", analyst: "Model & Data", manager: "Can we trust this?" },
-] as const;
-type Tab = (typeof TABS)[number]["value"];
+const Model = lazy(() => import("./pages/Model"));
 
-const VIEWS = [
-  { value: "manager", label: "Manager view" },
-  { value: "analyst", label: "Analyst view" },
-];
-
-const SHOW_PREVIEW = import.meta.env.DEV && new URLSearchParams(window.location.search).has("preview");
+function Toast() {
+  const { toastState } = useApp();
+  if (!toastState) return null;
+  return <div key={toastState.key} className="toast" role="status">{toastState.msg}</div>;
+}
 
 function Shell() {
-  const { mode, setMode } = useViewMode();
-  const [tab, setTab] = useState<Tab>("overview");
-  const [filter, setFilter] = useState<CustomerFilter | null>(null);
-  const [lastAllocation, setLastAllocation] = useState<LastAllocation | null>(null);
+  const reduced = useReducedMotion();
+  const metrics = useMetrics();
+  const { profileId } = useApp();
+  const [screen, setScreen] = useState<Screen>("home");
+  const [intro, setIntro] = useState(() => !introAlreadySeen());
+  const [introKey, setIntroKey] = useState(0);
+  const [searchOpen, setSearchOpen] = useState(false);
 
-  const openCustomers = useCallback((f: CustomerFilter) => {
-    setFilter(f);
-    setTab("lookup");
+  const endIntro = useCallback(() => { markIntroSeen(); setIntro(false); }, []);
+  const replay = useCallback(() => { setIntro(false); window.setTimeout(() => { setIntroKey((k) => k + 1); setIntro(true); }, 50); }, []);
+
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setSearchOpen(true); }
+    };
+    window.addEventListener("keydown", on);
+    return () => window.removeEventListener("keydown", on);
   }, []);
-  const session = useMemo(
-    () => ({ openCustomers, initialFilter: filter, lastAllocation, setLastAllocation }),
-    [openCustomers, filter, lastAllocation],
-  );
+
+  const go = (s: Screen) => { setScreen(s); window.scrollTo({ top: 0 }); };
 
   return (
-    <SessionContext.Provider value={session}>
-      <div className="min-h-screen">
-        <AppHeader
-          title="Churn & Revenue Risk"
-          tabs={TABS.map((t) => ({ value: t.value, label: t[mode] }))}
-          active={tab}
-          onTab={(t) => {
-            setFilter(null);
-            setTab(t as Tab);
-          }}
-          actions={<SegmentedControl label="View mode" options={VIEWS} value={mode} onChange={(v) => setMode(v as ViewMode)} />}
-        />
-        <main className="page">
-          {tab === "overview" && <Overview />}
-          {tab === "lookup" && <ClientLookup />}
-          {tab === "budget" && <BudgetPlanner />}
-          {tab === "model" && <ModelData />}
-        </main>
-      </div>
-    </SessionContext.Provider>
+    <div style={{ position: "relative", minHeight: "100vh" }}>
+      {intro && !reduced && <Intro key={introKey} onDone={endIntro} />}
+      <Header screen={screen} onScreen={go} trainedAt={metrics.data?.trained_at} onSearch={() => setSearchOpen(true)} onReplay={replay} />
+      <main aria-hidden={profileId ? true : undefined}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={screen}
+            initial={reduced ? false : { opacity: 0, y: 16, filter: "blur(4px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            exit={reduced ? { opacity: 0 } : { opacity: 0, y: -8 }}
+            transition={{ duration: reduced ? 0 : 0.6, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {screen === "home" && <Home onBudget={() => go("budget")} />}
+            {screen === "customers" && <Customers />}
+            {screen === "budget" && <Budget />}
+            {screen === "model" && (
+              <Suspense fallback={<div style={{ padding: "56px clamp(16px, 3.4vw, 48px)" }}><Skeleton w={420} h={44} /></div>}>
+                <Model />
+              </Suspense>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </main>
+      <SearchPanel open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <ProfileModal />
+      <Toast />
+    </div>
   );
 }
 
 export default function App() {
-  if (SHOW_PREVIEW) return <UiPreview />;
   return (
-    <ViewModeProvider>
+    <AppProvider>
       <Shell />
-    </ViewModeProvider>
+    </AppProvider>
   );
 }

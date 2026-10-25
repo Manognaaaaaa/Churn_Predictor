@@ -4,12 +4,14 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from api import artifacts
-from api.routers import allocate, customers, insights
+from api.routers import allocate, customers, home, insights, stats
 
 app = FastAPI(title="Churn Predictor API", version="1.0.0")
 app.include_router(customers.router, prefix="")
 app.include_router(insights.router, prefix="")
 app.include_router(allocate.router, prefix="")
+app.include_router(home.router, prefix="")
+app.include_router(stats.router, prefix="")
 
 
 @app.get("/health")

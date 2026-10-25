@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Customer galaxy</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Serif:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1726}
+a{color:#E6E9EF}a:hover{color:#E6E9EF}
+.tab{display:inline-block;padding:6px 14px;border-radius:999px;font-size:14px;line-height:20px;color:#A3ADBF;text-decoration:none;transition:color .2s,background .2s}
+.tab:hover{color:#E6E9EF}
+.tab.on{background:#22355A;color:#E6E9EF;box-shadow:0 0 0 1px rgba(157,187,219,.35),0 0 24px 0 rgba(157,187,219,.18)}
+.chip{font:inherit;font-size:14px;line-height:20px;padding:10px 14px;min-height:44px;border-radius:6px;border:1px solid #26344F;background:#1B2842;color:#A3ADBF;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .25s}
+.chip:hover{color:#E6E9EF}
+.chip.on{background:#22355A;border-color:#22355A;color:#E6E9EF;box-shadow:0 0 0 1px rgba(157,187,219,.35),0 0 24px 0 rgba(157,187,219,.18)}
+.chip:focus-visible,.tab:focus-visible{outline:none;box-shadow:0 0 0 2px #0F1726,0 0 0 4px #E6E9EF}
+.ring{transform-box:fill-box;transform-origin:center;animation:ping 2.4s cubic-bezier(0,0,.2,1) infinite}
+@keyframes ping{0%{transform:scale(1);opacity:.9}100%{transform:scale(4);opacity:0}}
+.fadein{animation:fadein .9s ease both}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.ring,.fadein{animation:none}}
+</style>
+</helmet>
+<div style="min-height: 860px; box-sizing: border-box; background: radial-gradient(ellipse 70% 50% at 20% 0%, #22355A, #0F1726 70%); color: #E6E9EF; font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 20px;">
+<header style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; padding: 20px 32px; border-bottom: 1px solid #26344F;">
+<div style="font-weight: 600; font-size: 20px; line-height: 28px;">Churn &amp; Revenue Risk</div>
+<nav aria-label="Concepts" style="display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border: 1px solid #26344F; border-radius: 999px; background: #152036;">
+<a class="tab on" href="Main.dc.html" aria-current="page">Customer galaxy</a>
+<a class="tab" href="Flow.dc.html">Money flow</a>
+<a class="tab" href="Budget.dc.html">Budget simulator</a>
+<a class="tab" href="Customer.dc.html">Customer profile</a>
+</nav>
+</header>
+<main style="max-width: 1216px; margin: 0 auto; padding: 32px; display: flex; flex-direction: column; gap: 24px;">
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 32px;">
+<div style="font-family: 'IBM Plex Serif', Georgia, serif; font-weight: 600; font-size: 72px; line-height: 80px; letter-spacing: -0.01em; font-variant-numeric: tabular-nums;">{{rar}}</div>
+<div style="max-width: 420px; padding-bottom: 8px; font-size: 18px; line-height: 26px; color: #A3ADBF;">of revenue is at risk across 10,000 customers. <span style="color: #D0848E; font-weight: 600;">1,232 are high risk</span> and sit in the top right.</div>
+</div>
+<section style="flex: 999 1 640px; min-width: 0; background: #152036; border: 1px solid #26344F; border-radius: 18px; padding: 16px; box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.04), 0 20px 40px -16px rgba(0,0,0,0.6)">
+<div style="display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px;">
+<h2 style="margin: 0; font-size: 15px; line-height: 22px; font-weight: 600;">Every dot is a customer</h2>
+<div style="font-size: 12px; line-height: 16px; color: #8A95A8;">Right = more likely to leave. Up = more valuable. A 1 in 24 sample is drawn.</div>
+</div>
+<svg viewBox="0 0 760 440" role="img" aria-label="Scatter of customers by chance of leaving and value" style="width: 100%; height: auto; display: block;">
+<rect x="402" y="10" width="348" height="394" fill="#4A2530" style="opacity: 0.45;" rx="10"></rect>
+<text x="740" y="30" fill="#D0848E" style="font-size: 12px; text-anchor: end; font-weight: 600;">High risk zone</text>
+<line x1="48" y1="404" x2="750" y2="404" stroke="#26344F"></line>
+<line x1="223" y1="10" x2="223" y2="404" stroke="#1B2842"></line>
+<line x1="575" y1="10" x2="575" y2="404" stroke="#1B2842"></line>
+<text x="48" y="428" fill="#8A95A8" style="font-size: 11px;">0% chance of leaving</text>
+<text x="402" y="428" fill="#8A95A8" style="font-size: 11px; text-anchor: middle;">50%</text>
+<text x="750" y="428" fill="#8A95A8" style="font-size: 11px; text-anchor: end;">100%</text>
+<text x="40" y="20" fill="#8A95A8" style="font-size: 11px; text-anchor: end;">high value</text>
+<text x="40" y="404" fill="#8A95A8" style="font-size: 11px; text-anchor: end;">low</text>
+<sc-for list="{{rings}}" as="g" hint-placeholder-count="0">
+<g transform="{{g.tf}}"><circle class="ring" cx="0" cy="0" r="6" fill="none" stroke="#D0848E" style="stroke-width: 1.5px;"></circle></g>
+</sc-for>
+<sc-for list="{{dots}}" as="d" hint-placeholder-count="0">
+<circle cx="0" cy="0" r="{{d.r}}" fill="{{d.c}}" stroke="{{d.stroke}}" onMouseEnter="{{d.enter}}" onMouseLeave="{{leave}}" style="cursor: pointer; transform: {{d.tf}}; opacity: {{d.op}}; transition: {{d.tr}}; stroke-width: 2px;"></circle>
+</sc-for>
+</svg>
+</section><div style="display: flex; flex-wrap: wrap; gap: 24px;">
+
+<aside style="flex: 1 1 280px; display: flex; flex-direction: column; gap: 16px;">
+<div style="display: flex; flex-direction: column; gap: 8px;">
+<div style="font-size: 12px; line-height: 16px; color: #A3ADBF;">Show</div>
+<sc-for list="{{chips}}" as="c" hint-placeholder-count="4">
+<button class="{{c.cls}}" onClick="{{c.pick}}" aria-pressed="{{c.pressed}}"><span style="width: 10px; height: 10px; border-radius: 999px; background: {{c.color}};"></span>{{c.label}}</button>
+</sc-for>
+</div>
+<div style="background: #1B2842; border: 1px solid #26344F; border-radius: 12px; padding: 16px; min-height: 196px; box-sizing: border-box; box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.04), 0 20px 40px -16px rgba(0,0,0,0.6);">
+<sc-if value="{{noHover}}" hint-placeholder-val="{{ true }}">
+<div style="color: #A3ADBF;">Hover a dot to see that customer. The pulsing dots are the most valuable high-risk customers.</div>
+</sc-if>
+<sc-if value="{{hasHover}}" hint-placeholder-val="{{ false }}">
+<div class="fadein" style="display: flex; flex-direction: column; gap: 10px;">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+<span style="display: flex; flex-direction: column;"><span style="font-weight: 600; font-size: 16px;">{{h.name}}</span><span style="font-size: 12px; color: #8A95A8;">ID {{h.id}}</span></span>
+<span style="font-size: 12px; font-weight: 600; padding: 0 8px; border-radius: 999px; color: {{h.c}}; background: {{h.soft}}; border: 1px solid {{h.c}};">{{h.band}}</span>
+</div>
+<div style="font-family: 'IBM Plex Serif', Georgia, serif; font-size: 44px; line-height: 48px; color: {{h.c}};">{{h.pct}}</div>
+<div style="color: #A3ADBF;">chance of leaving</div>
+<div style="display: flex; justify-content: space-between;"><span style="color: #A3ADBF;">Revenue at risk</span><span style="font-variant-numeric: tabular-nums;">{{h.rar}}</span></div>
+<div style="display: flex; justify-content: space-between;"><span style="color: #A3ADBF;">Group</span><span>{{h.group}}</span></div>
+</div>
+</sc-if>
+</div>
+<div style="font-size: 12px; line-height: 16px; color: #8A95A8;">On load the dots burst out of the centre and settle into place. Filters dim the other dots instead of removing them, so the shape of the customer base stays visible.</div>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":860}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { settled: false, t: 0, filter: 'all', hover: -1 };
+  }
+  componentDidMount() {
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { this.setState({ settled: true, t: 1 }); return; }
+    const step = (ts) => {
+      if (this._t0 == null) this._t0 = ts;
+      const t = Math.min(1, (ts - this._t0) / 1800);
+      this.setState({ t });
+      if (t < 1) this._raf = requestAnimationFrame(step);
+    };
+    this._timer = setTimeout(() => { this.setState({ settled: true }); this._raf = requestAnimationFrame(step); }, 200);
+  }
+  componentWillUnmount() { clearTimeout(this._timer); cancelAnimationFrame(this._raf); }
+  base() {
+    if (this._dots) return this._dots;
+    let s = 20261025;
+    const rnd = () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+    const groups = ['Customers in Germany', 'Customers in France', 'Customers in Spain', 'No account balance'];
+    const out = [];
+    for (let i = 0; i < 420; i++) {
+      const p = Math.pow(rnd(), 4) * 0.98 + 0.01;
+      const v = Math.pow(rnd(), 1.5);
+      const value = 12000 + 188000 * v;
+      const band = p >= 0.5 ? 'high' : p >= 0.25 ? 'medium' : 'low';
+      const a = rnd() * Math.PI * 2, rr = rnd() * 30;
+      out.push({
+        i, p, value, band,
+        tx: 48 + p * 702, ty: 398 - v * 380,
+        sx: 380 + Math.cos(a) * rr, sy: 210 + Math.sin(a) * rr,
+        id: String(15565701 + Math.floor(rnd() * 250000)),
+        group: groups[Math.floor(rnd() * groups.length)],
+        name: (rnd() < 0.5 ? 'Mr ' : 'Ms ') + ['Castiglione', 'Levy', 'Trentino', 'Chung', 'Kennedy', 'Dumetolisa', 'Chidiebele', 'Robinson', 'Larionova', 'Pisano', 'Lorenzo', 'Boni', 'Chin', 'Buccho', 'Scott', 'Walker', 'Martin', 'Genovese', 'Maclean', 'Yeh'][Math.floor(rnd() * 20)],
+        delay: Math.floor(rnd() * 700)
+      });
+    }
+    const top = out.filter(d => d.band === 'high').sort((a, b) => b.value * b.p - a.value * a.p).slice(0, 9);
+    top.forEach(d => { d.top = true; });
+    this._dots = out;
+    return out;
+  }
+  renderVals() {
+    const C = { high: '#D0848E', medium: '#C9A26B', low: '#8DB59E' };
+    const S = { high: '#4A2530', medium: '#3A2F22', low: '#22355A' };
+    const W = { high: 'High risk', medium: 'Medium risk', low: 'Low risk' };
+    const { settled, t, filter, hover } = this.state;
+    const dots = this.base().map(d => {
+      const on = filter === 'all' || filter === d.band;
+      const x = settled ? d.tx : d.sx, y = settled ? d.ty : d.sy;
+      return {
+        r: hover === d.i ? 7 : (2 + d.p * 3 + (d.top ? 1.5 : 0)).toFixed(1),
+        c: C[d.band],
+        stroke: hover === d.i ? '#E6E9EF' : 'none',
+        tf: 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)',
+        op: settled ? (on ? (d.band === 'low' ? 0.55 : 0.92) : 0.06) : 0,
+        tr: 'transform 1500ms cubic-bezier(.16,1,.3,1) ' + d.delay + 'ms, opacity 500ms ease ' + (settled && t >= 1 ? 0 : d.delay) + 'ms',
+        enter: () => this.setState({ hover: d.i })
+      };
+    });
+    const rings = (settled && t >= 1 && (filter === 'all' || filter === 'high')) ? this.base().filter(d => d.top).map(d => ({ tf: 'translate(' + d.tx.toFixed(1) + ',' + d.ty.toFixed(1) + ')' })) : [];
+    const e = 1 - Math.pow(1 - t, 3);
+    const chips = [['all', 'All customers', '#E6E9EF'], ['high', 'High risk', C.high], ['medium', 'Medium risk', C.medium], ['low', 'Low risk', C.low]].map(([k, label, color]) => ({
+      label, color, cls: filter === k ? 'chip on' : 'chip', pressed: filter === k ? 'true' : 'false',
+      pick: () => this.setState({ filter: k })
+    }));
+    const hd = hover >= 0 ? this.base()[hover] : null;
+    return {
+      rar: Math.round(208100843 * e).toLocaleString('en-US'),
+      dots, rings, chips,
+      leave: () => this.setState({ hover: -1 }),
+      noHover: !hd, hasHover: !!hd,
+      h: hd ? {
+        id: hd.id, name: hd.name, band: W[hd.band], c: C[hd.band], soft: S[hd.band],
+        pct: hd.p >= 0.99 ? '99%+' : Math.round(hd.p * 100) + '%',
+        rar: Math.round(hd.value * hd.p).toLocaleString('en-US'), group: hd.group
+      } : {}
+    };
+  }
+}
+</script>
+</body>
+</html>

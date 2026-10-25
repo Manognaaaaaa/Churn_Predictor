@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Churn and Revenue Risk app</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#060B16}
+a{color:#8DB8FF}a:hover{color:#C9DCFF}
+button{font:inherit;letter-spacing:inherit}
+.nav{position:relative;height:60px;padding:0 18px;border:0;background:transparent;color:#8494AE;font-size:14px;cursor:pointer;transition:color .3s}
+.nav:hover{color:#E6EDF8}
+.nav.on{color:#E6EDF8}
+.ghost{border:1px solid rgba(132,160,210,.22);background:rgba(16,28,52,.5);color:#C7D3E6;padding:0 14px;height:36px;border-radius:8px;cursor:pointer;font-size:13px;transition:background .2s,border-color .2s,color .2s}
+.ghost:hover{background:rgba(30,52,92,.6);border-color:rgba(132,160,210,.4);color:#E6EDF8}
+.cta{border:0;background:#E6EDF8;color:#07101F;padding:0 22px;height:46px;border-radius:10px;cursor:pointer;font-size:15px;font-weight:600;display:inline-flex;align-items:center;gap:10px;transition:transform .25s cubic-bezier(.22,1,.36,1),background .2s,box-shadow .25s}
+.cta:hover{background:#FFFFFF;transform:translateY(-1px);box-shadow:0 10px 30px -10px rgba(141,184,255,.5)}
+.cta2{border:1px solid rgba(132,160,210,.28);background:rgba(20,36,66,.55);color:#E6EDF8;padding:0 22px;height:46px;border-radius:10px;cursor:pointer;font-size:15px;font-weight:500;backdrop-filter:blur(10px);transition:background .2s,border-color .2s}
+.cta2:hover{background:rgba(30,54,98,.7);border-color:rgba(141,184,255,.45)}
+.chip{border:1px solid rgba(132,160,210,.22);background:transparent;color:#8494AE;padding:0 16px;height:38px;border-radius:999px;cursor:pointer;font-size:13px;transition:all .25s}
+.chip:hover{color:#E6EDF8;border-color:rgba(132,160,210,.45)}
+.chip.on{background:#E6EDF8;color:#07101F;border-color:#E6EDF8;font-weight:600}
+.nav:focus-visible,.ghost:focus-visible,.cta:focus-visible,.cta2:focus-visible,.chip:focus-visible,.arrow:focus-visible,.cover:focus-visible,.round:focus-visible,.seg:focus-visible,.strat:focus-visible,.offer:focus-visible,.dot:focus-visible,input:focus-visible{outline:none;box-shadow:0 0 0 2px #060B16,0 0 0 4px #8DB8FF}
+
+.intro{position:fixed;inset:0;z-index:100;background:#050A14;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;overflow:hidden;animation:introOut 2.9s cubic-bezier(.65,0,.35,1) forwards;pointer-events:none}
+@keyframes introOut{0%,78%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-3%)}}
+.bloom{position:absolute;width:900px;height:900px;border-radius:999px;background:radial-gradient(circle,rgba(59,111,216,.28),transparent 60%);animation:bloom 2.9s ease-out forwards}
+@keyframes bloom{from{transform:scale(.4);opacity:0}to{transform:scale(1.2);opacity:1}}
+.mark{position:relative;width:64px;height:64px;animation:markIn 1.2s cubic-bezier(.22,1,.36,1) both}
+@keyframes markIn{from{opacity:0;transform:scale(.8) rotate(-20deg)}to{opacity:1;transform:none}}
+.markArc{stroke-dasharray:180;stroke-dashoffset:180;animation:draw 1.4s cubic-bezier(.65,0,.35,1) .2s forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.word{position:relative;font-size:28px;font-weight:500;color:#E6EDF8;letter-spacing:.42em;opacity:0;animation:word 1.6s cubic-bezier(.22,1,.36,1) .5s forwards}
+@keyframes word{from{opacity:0;letter-spacing:.42em;filter:blur(8px)}to{opacity:1;letter-spacing:-.01em;filter:blur(0)}}
+.rule{position:relative;width:240px;height:1px;background:linear-gradient(90deg,transparent,#8DB8FF,transparent);transform:scaleX(0);animation:rule 1.2s cubic-bezier(.65,0,.35,1) .9s forwards}
+@keyframes rule{to{transform:scaleX(1)}}
+.introSub{position:relative;color:#6F84A6;font-size:12px;letter-spacing:.24em;opacity:0;animation:sub 1s ease 1.3s forwards}
+@keyframes sub{to{opacity:1}}
+
+.scr{animation:scrIn .8s cubic-bezier(.22,1,.36,1) both}
+@keyframes scrIn{from{opacity:0;transform:translateY(16px);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}
+
+.kbA{animation:kbA 10s ease-out both}.kbB{animation:kbB 10s ease-out both}
+@keyframes kbA{from{transform:scale(1.08);opacity:0}10%{opacity:1}to{transform:scale(1);opacity:1}}
+@keyframes kbB{from{transform:scale(1.08);opacity:0}10%{opacity:1}to{transform:scale(1);opacity:1}}
+.txA{animation:txA 1s cubic-bezier(.22,1,.36,1) both}.txB{animation:txB 1s cubic-bezier(.22,1,.36,1) both}
+@keyframes txA{from{opacity:0;transform:translateY(18px);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}
+@keyframes txB{from{opacity:0;transform:translateY(18px);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}
+.arcA{animation:arcA 2s cubic-bezier(.22,1,.36,1) .2s both}.arcB{animation:arcB 2s cubic-bezier(.22,1,.36,1) .2s both}
+@keyframes arcA{from{stroke-dasharray:0 1400}}
+@keyframes arcB{from{stroke-dasharray:0 1400}}
+.prA{animation:prA 8s linear both}.prB{animation:prB 8s linear both}
+@keyframes prA{from{width:0}to{width:100%}}
+@keyframes prB{from{width:0}to{width:100%}}
+.drift{animation:drift 14s ease-in-out infinite}
+@keyframes drift{0%,100%{transform:translate(0,0)}50%{transform:translate(-14px,10px)}}
+.orbit{transform-origin:200px 200px;animation:orbit 40s linear infinite}
+@keyframes orbit{to{transform:rotate(360deg)}}
+
+.rowwrap{position:relative}
+.rowwrap .more{opacity:0;transform:translateX(-6px);transition:all .35s cubic-bezier(.22,1,.36,1)}
+.rowwrap:hover .more{opacity:1;transform:none}
+.arrow{position:absolute;top:30px;bottom:30px;width:56px;border:0;cursor:pointer;color:#E6EDF8;opacity:0;transition:opacity .3s;z-index:6;display:grid;place-items:center}
+.arrow.l{left:0;background:linear-gradient(90deg,rgba(6,11,22,.95),transparent)}
+.arrow.r{right:0;background:linear-gradient(270deg,rgba(6,11,22,.95),transparent)}
+.rowwrap:hover .arrow{opacity:1}
+.arrow:disabled{display:none}
+.arrow svg{transition:transform .25s}
+.arrow:hover svg{transform:scale(1.25)}
+.cardwrap{position:relative;z-index:1;transition:z-index 0s .5s}
+.cardwrap:hover,.cardwrap:focus-within{z-index:5;transition:z-index 0s 0s}
+.tile{position:relative;border-radius:10px;overflow:hidden;border:1px solid rgba(132,160,210,.12);transition:transform .5s cubic-bezier(.22,1,.36,1),box-shadow .5s,border-color .5s}
+.cardwrap:hover .tile,.cardwrap:focus-within .tile{transform:scale(1.18) translateY(-6%);transition-delay:.2s;border-color:rgba(141,184,255,.35);box-shadow:0 30px 60px -20px rgba(0,0,0,.85),0 0 40px -12px rgba(59,111,216,.45)}
+.sheen{position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(200,220,255,.10) 50%,transparent 65%);transform:translateX(-120%);pointer-events:none}
+.cardwrap:hover .sheen{transform:translateX(120%);transition:transform 1.1s ease .25s}
+.info{position:absolute;left:0;right:0;bottom:0;padding:40px 12px 10px;background:linear-gradient(transparent,rgba(5,10,20,.97) 50%);opacity:0;transform:translateY(10px);transition:opacity .3s,transform .45s cubic-bezier(.22,1,.36,1)}
+.cardwrap:hover .info,.cardwrap:focus-within .info{opacity:1;transform:none;transition-delay:.35s}
+.cover{position:absolute;inset:0;border:0;background:transparent;cursor:pointer;z-index:1;border-radius:10px}
+.round{width:28px;height:28px;border-radius:999px;border:1px solid rgba(199,211,230,.45);background:rgba(6,11,22,.6);color:#E6EDF8;display:grid;place-items:center;cursor:pointer;padding:0;position:relative;z-index:2;transition:border-color .2s,background .2s,transform .2s}
+.round:hover{border-color:#E6EDF8;transform:scale(1.08)}
+.round.solid{background:#E6EDF8;border-color:#E6EDF8}
+.num{position:absolute;left:-4px;bottom:-14px;font-weight:700;font-size:132px;line-height:1;letter-spacing:-.06em;color:#060B16;-webkit-text-stroke:1.5px rgba(141,184,255,.28);pointer-events:none;transition:-webkit-text-stroke-color .5s}
+.cardwrap:hover .num{-webkit-text-stroke-color:rgba(141,184,255,.7)}
+
+.gA{animation:gA .7s cubic-bezier(.22,1,.36,1) both}.gB{animation:gB .7s cubic-bezier(.22,1,.36,1) both}
+@keyframes gA{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes gB{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:none}}
+.gcard{transition:transform .5s cubic-bezier(.22,1,.36,1),box-shadow .5s,border-color .5s;border:1px solid rgba(132,160,210,.12)}
+.gcard:hover{transform:translateY(-6px);border-color:rgba(141,184,255,.35);box-shadow:0 30px 60px -24px rgba(0,0,0,.85),0 0 40px -14px rgba(59,111,216,.45)}
+.gcard:hover .sheen{transform:translateX(120%);transition:transform 1.1s ease .1s}
+
+.bIn{animation:bIn .4s ease both}.bOut{animation:bOut .3s ease both}
+@keyframes bIn{from{opacity:0}to{opacity:1}}
+@keyframes bOut{from{opacity:1}to{opacity:0}}
+.mIn{animation:mIn .6s cubic-bezier(.22,1,.36,1) both}.mOut{animation:mOut .3s ease both}
+@keyframes mIn{from{opacity:0;transform:translateY(28px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes mOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(16px) scale(.98)}}
+.grow{animation:grow 1.1s cubic-bezier(.22,1,.36,1) both}
+@keyframes grow{from{width:0}}
+.stag{animation:stag .7s cubic-bezier(.22,1,.36,1) both}
+@keyframes stag{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.offer{border:1px solid rgba(132,160,210,.18);background:rgba(16,28,52,.6);color:#E6EDF8;border-radius:10px;padding:12px 14px;min-height:44px;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:10px;transition:all .3s cubic-bezier(.22,1,.36,1)}
+.offer:hover{border-color:rgba(141,184,255,.4);transform:translateX(3px)}
+.offer.on{background:rgba(59,111,216,.22);border-color:#8DB8FF}
+.toast{position:fixed;right:28px;bottom:28px;z-index:60;background:rgba(16,28,52,.92);backdrop-filter:blur(14px);color:#E6EDF8;padding:14px 18px 14px 16px;border-radius:12px;border:1px solid rgba(141,184,255,.3);border-left:3px solid #8DB8FF;font-size:14px;box-shadow:0 24px 48px -16px rgba(0,0,0,.7);animation:toast 4s cubic-bezier(.22,1,.36,1) both}
+@keyframes toast{0%{opacity:0;transform:translateY(16px)}10%,85%{opacity:1;transform:none}100%{opacity:0;transform:translateY(16px)}}
+
+.strat{border:0;padding:0;background:transparent;color:#E6EDF8;cursor:pointer;text-align:left;width:100%;border-radius:12px}
+.spin{animation:spin 5s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.seg{border:1px solid rgba(132,160,210,.22);background:transparent;color:#C7D3E6;padding:0 14px;height:36px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all .2s}
+.seg:hover{border-color:rgba(141,184,255,.45);color:#E6EDF8}
+.seg.on{background:#E6EDF8;border-color:#E6EDF8;color:#07101F}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:40px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:999px;background:linear-gradient(90deg,#3B6FD8,#8DB8FF var(--pct),rgba(132,160,210,.2) var(--pct))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-8px;border-radius:999px;background:#E6EDF8;box-shadow:0 0 0 5px rgba(141,184,255,.18),0 4px 12px rgba(0,0,0,.4);transition:box-shadow .2s}
+input[type=range]:hover::-webkit-slider-thumb{box-shadow:0 0 0 9px rgba(141,184,255,.2),0 4px 12px rgba(0,0,0,.4)}
+input[type=range]::-moz-range-track{height:4px;border-radius:999px;background:rgba(132,160,210,.2)}
+input[type=range]::-moz-range-progress{height:4px;border-radius:999px;background:#8DB8FF}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:999px;background:#E6EDF8;border:0}
+.flyA{animation:flyA 1.7s cubic-bezier(.65,0,.35,1) both}.flyB{animation:flyB 1.7s cubic-bezier(.65,0,.35,1) both}
+@keyframes flyA{0%{offset-distance:0%;opacity:0}12%{opacity:1}88%{opacity:1}100%{offset-distance:100%;opacity:0}}
+@keyframes flyB{0%{offset-distance:0%;opacity:0}12%{opacity:1}88%{opacity:1}100%{offset-distance:100%;opacity:0}}
+.panel{background:linear-gradient(180deg,rgba(16,28,52,.65),rgba(10,18,36,.65));border:1px solid rgba(132,160,210,.14);border-radius:16px}
+@media (prefers-reduced-motion: reduce){
+.intro{display:none}
+.scr,.kbA,.kbB,.txA,.txB,.arcA,.arcB,.prA,.prB,.drift,.orbit,.gA,.gB,.bIn,.mIn,.grow,.stag,.toast,.spin,.flyA,.flyB{animation:none}
+.tile,.info,.sheen,.gcard{transition:none}
+}
+</style>
+</helmet>
+<div style="position: relative; min-height: 1900px; background: #060B16; color: #E6EDF8; font-family: Geist, 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 22px; letter-spacing: -0.005em; overflow-x: hidden; font-feature-settings: 'tnum' 1;">
+
+<sc-if value="{{intro}}" hint-placeholder-val="{{ false }}">
+<div class="intro" aria-hidden="true">
+<div class="bloom"></div>
+<svg class="mark" viewBox="0 0 64 64">
+<circle cx="32" cy="32" r="27" fill="none" stroke="rgba(141,184,255,.18)" style="stroke-width: 3px;"></circle>
+<circle class="markArc" cx="32" cy="32" r="27" fill="none" stroke="#8DB8FF" transform="rotate(-90 32 32)" style="stroke-width: 3px; stroke-linecap: round;"></circle>
+<circle cx="32" cy="32" r="6" fill="#E6EDF8"></circle>
+</svg>
+<div class="word">Churn &amp; Revenue Risk</div>
+<div class="rule"></div>
+<div class="introSub">RETENTION INTELLIGENCE</div>
+</div>
+</sc-if>
+
+<header style="position: sticky; top: 0; z-index: 30; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 0 48px; background: rgba(6,11,22,.72); backdrop-filter: blur(16px) saturate(140%); border-bottom: 1px solid rgba(132,160,210,.10);">
+<div style="display: flex; align-items: center; gap: 32px; flex-wrap: wrap;">
+<div style="display: flex; align-items: center; gap: 10px;">
+<svg width="24" height="24" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="27" fill="none" stroke="rgba(141,184,255,.25)" style="stroke-width: 6px;"></circle><path d="M32 5 A27 27 0 1 1 8.6 45.5" fill="none" stroke="#8DB8FF" style="stroke-width: 6px; stroke-linecap: round;"></path><circle cx="32" cy="32" r="7" fill="#E6EDF8"></circle></svg>
+<span style="font-weight: 600; font-size: 15px; letter-spacing: -0.01em;">Churn &amp; Revenue Risk</span>
+</div>
+<nav aria-label="Main" style="position: relative; display: flex;">
+<sc-for list="{{navs}}" as="n" hint-placeholder-count="3">
+<button class="{{n.cls}}" onClick="{{n.go}}" aria-current="{{n.cur}}">{{n.label}}<span aria-hidden="true" style="position: absolute; left: 18px; right: 18px; bottom: 0; height: 2px; border-radius: 2px 2px 0 0; background: #8DB8FF; transform: scaleX({{n.ul}}); transition: transform .45s cubic-bezier(.22,1,.36,1);"></span></button>
+</sc-for>
+</nav>
+</div>
+<div style="display: flex; gap: 10px; align-items: center;">
+<span style="font-size: 12px; color: #6F84A6;">Model updated today</span>
+<button class="ghost" onClick="{{replayIntro}}">Replay intro</button>
+</div>
+</header>
+
+<sc-if value="{{isHome}}" hint-placeholder-val="{{ true }}">
+<div class="scr">
+<section style="position: relative; height: 620px; overflow: hidden;">
+<div class="{{bbBg}}" style="position: absolute; inset: -4%; background: radial-gradient(ellipse 40% 55% at 74% 42%, {{feat.glow}} 0%, transparent 70%), radial-gradient(ellipse 45% 45% at 10% 90%, rgba(30,58,110,.45) 0%, transparent 65%), #060B16;"></div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background-image: linear-gradient(rgba(132,160,210,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(132,160,210,.06) 1px, transparent 1px); background-size: 56px 56px; -webkit-mask-image: radial-gradient(ellipse 60% 70% at 70% 40%, #000 20%, transparent 75%); mask-image: radial-gradient(ellipse 60% 70% at 70% 40%, #000 20%, transparent 75%);"></div>
+<div class="drift" style="position: absolute; right: 8%; top: 64px; width: 420px; max-width: 38%;">
+<svg viewBox="0 0 400 400" aria-hidden="true" style="width: 100%; height: auto; display: block; overflow: visible;">
+<defs><linearGradient id="ringg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color: #C9DCFF;"></stop><stop offset="1" style="stop-color: #3B6FD8;"></stop></linearGradient></defs>
+<g class="orbit"><circle cx="200" cy="200" r="182" fill="none" stroke="rgba(141,184,255,.16)" style="stroke-width: 1px; stroke-dasharray: 1 7;"></circle><circle cx="200" cy="18" r="3" fill="#8DB8FF"></circle></g>
+<circle cx="200" cy="200" r="150" fill="none" stroke="rgba(132,160,210,.12)" style="stroke-width: 10px;"></circle>
+<circle class="{{arcCls}}" cx="200" cy="200" r="150" fill="none" stroke="url(#ringg)" transform="rotate(-90 200 200)" style="stroke-width: 10px; stroke-linecap: round; stroke-dasharray: {{feat.arc}} 942.5;"></circle>
+<sc-for list="{{ticks}}" as="t" hint-placeholder-count="0"><line x1="{{t.x1}}" y1="{{t.y1}}" x2="{{t.x2}}" y2="{{t.y2}}" stroke="rgba(141,184,255,.25)" style="stroke-width: 1px;"></line></sc-for>
+</svg>
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;">
+<div class="{{txCls}}" style="font-weight: 300; font-size: 76px; line-height: 80px; letter-spacing: -0.04em;">{{feat.pct}}</div>
+<div style="color: #8494AE; font-size: 13px;">chance of leaving</div>
+</div>
+</div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 240px; background: linear-gradient(transparent, #060B16);"></div>
+<div style="position: absolute; left: 48px; top: 120px; max-width: 580px; display: flex; flex-direction: column; gap: 18px;">
+<div class="{{txCls}}" style="display: inline-flex; align-self: flex-start; align-items: center; gap: 8px; padding: 5px 12px 5px 8px; border-radius: 999px; border: 1px solid rgba(141,184,255,.25); background: rgba(30,58,110,.35); color: #C9DCFF; font-size: 12px; font-weight: 500;"><span style="width: 6px; height: 6px; border-radius: 999px; background: #8DB8FF; box-shadow: 0 0 10px #8DB8FF;"></span>{{feat.rankText}}</div>
+<h1 class="{{txCls}}" style="margin: 0; font-weight: 600; font-size: 64px; line-height: 66px; letter-spacing: -0.045em; animation-delay: 80ms;">{{feat.name}}</h1>
+<div class="{{txCls}}" style="display: flex; gap: 0; flex-wrap: wrap; color: #8494AE; font-size: 14px; animation-delay: 160ms;">
+<span style="color: #C9DCFF; font-weight: 500; padding-right: 14px;">{{feat.value}} a year</span><span style="padding: 0 14px; border-left: 1px solid rgba(132,160,210,.25);">{{feat.country}}</span><span style="padding: 0 14px; border-left: 1px solid rgba(132,160,210,.25);">Age {{feat.age}}</span><span style="padding-left: 14px; border-left: 1px solid rgba(132,160,210,.25);">{{feat.tenure}} years with the bank</span>
+</div>
+<p class="{{txCls}}" style="margin: 0; font-size: 17px; line-height: 27px; color: #B4C1D6; max-width: 520px; animation-delay: 240ms;">{{feat.story}}</p>
+<div class="{{txCls}}" style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px; animation-delay: 320ms;">
+<button class="cta" onClick="{{feat.open}}">Open profile<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="#07101F" style="stroke-width: 1.8px; stroke-linecap: round; stroke-linejoin: round;"></path></svg></button>
+<button class="cta2" onClick="{{goBudget}}">Plan the budget</button>
+</div>
+<div style="display: flex; gap: 8px; margin-top: 22px; align-items: center;" role="tablist" aria-label="Featured customers">
+<sc-for list="{{stories}}" as="s" hint-placeholder-count="4">
+<button class="dot" role="tab" aria-selected="{{s.sel}}" aria-label="{{s.label}}" onClick="{{s.pick}}" style="width: 48px; height: 20px; border: 0; padding: 8px 0; background: transparent; cursor: pointer; border-radius: 4px;"><span style="display: block; height: 3px; border-radius: 2px; background: rgba(132,160,210,.22); overflow: hidden;"><span class="{{s.cls}}" style="display: block; height: 100%; width: {{s.w}}; background: #C9DCFF;"></span></span></button>
+</sc-for>
+<span style="font-size: 12px; color: #6F84A6; margin-left: 6px;">{{storyText}}</span>
+</div>
+</div>
+</section>
+
+<div style="position: relative; margin-top: -84px; display: flex; flex-direction: column; gap: 6px; padding-bottom: 64px;">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+<section class="rowwrap stag" style="animation-delay: {{r.dl}};">
+<div style="display: flex; align-items: baseline; gap: 14px; padding: 0 48px;">
+<h2 style="margin: 0; font-size: 18px; line-height: 26px; font-weight: 600; letter-spacing: -0.02em;">{{r.title}}</h2>
+<span class="more" style="font-size: 13px; color: #8DB8FF;">{{r.count}}</span>
+<span style="margin-left: auto; display: flex; gap: 4px;">
+<sc-for list="{{r.pips}}" as="p" hint-placeholder-count="2"><span style="width: 14px; height: 2px; border-radius: 2px; background: {{p.c}}; transition: background .4s;"></span></sc-for>
+</span>
+</div>
+<div style="position: relative;">
+<button class="arrow l" aria-label="Previous" onClick="{{r.prev}}" disabled="{{r.noPrev}}"><svg width="22" height="22" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5" fill="none" stroke="#E6EDF8" style="stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round;"></path></svg></button>
+<button class="arrow r" aria-label="Next" onClick="{{r.next}}" disabled="{{r.noNext}}"><svg width="22" height="22" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="#E6EDF8" style="stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round;"></path></svg></button>
+<div style="overflow: hidden; padding: 30px 48px;">
+<div style="display: flex; gap: 12px; transform: translateX(calc({{r.off}} * -1 * (100% + 12px))); transition: transform 1s cubic-bezier(.22,1,.36,1);">
+<sc-for list="{{r.items}}" as="c" hint-placeholder-count="5">
+<div class="cardwrap" style="flex: 0 0 calc((100% - 48px) / 5); min-width: 0;">
+<sc-if value="{{c.isTop}}" hint-placeholder-val="{{ false }}"><span class="num" aria-hidden="true">{{c.rank}}</span></sc-if>
+<div class="tile" style="transform-origin: {{c.origin}}; margin-left: {{c.ml}}; aspect-ratio: 16 / 10; background: {{c.bg}};">
+<button class="cover" onClick="{{c.open}}" aria-label="{{c.aria}}"></button>
+<span aria-hidden="true" style="position: absolute; inset: 0; background-image: linear-gradient(rgba(200,220,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(200,220,255,.05) 1px, transparent 1px); background-size: 22px 22px; -webkit-mask-image: linear-gradient(135deg, #000, transparent 70%); mask-image: linear-gradient(135deg, #000, transparent 70%); pointer-events: none;"></span>
+<svg aria-hidden="true" viewBox="0 0 100 100" style="position: absolute; right: 10px; top: 10px; width: 38px; height: 38px; pointer-events: none;"><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(200,220,255,.15)" style="stroke-width: 8px;"></circle><circle cx="50" cy="50" r="40" fill="none" stroke="{{c.bc}}" transform="rotate(-90 50 50)" style="stroke-width: 8px; stroke-linecap: round; stroke-dasharray: {{c.ring}} 251.3;"></circle></svg>
+<span style="position: absolute; left: 12px; top: 12px; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 999px; color: {{c.bc}}; background: rgba(6,11,22,.55); border: 1px solid rgba(141,184,255,.18); backdrop-filter: blur(6px); pointer-events: none;">{{c.band}}</span>
+<span style="position: absolute; left: 12px; bottom: 14px; display: flex; flex-direction: column; pointer-events: none;"><span style="font-weight: 600; font-size: 17px; line-height: 20px; letter-spacing: -0.02em;">{{c.name}}</span><span style="font-size: 12px; color: #9FB0CA;">{{c.country}}</span></span>
+<span style="position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: rgba(132,160,210,.18); pointer-events: none;"><span style="display: block; height: 100%; width: {{c.pw}}; background: {{c.bc}};"></span></span>
+<span class="sheen"></span>
+<div class="info">
+<div style="display: flex; gap: 6px; align-items: center; margin-bottom: 7px;">
+<button class="round solid" onClick="{{c.open}}" aria-label="{{c.aria}}"><svg width="10" height="10" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="#07101F" style="stroke-width: 2.2px; stroke-linecap: round; stroke-linejoin: round;"></path></svg></button>
+<button class="round" onClick="{{c.quick}}" aria-label="{{c.quickAria}}"><svg width="10" height="10" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v12M2 8h12" stroke="#E6EDF8" style="stroke-width: 2px;"></path></svg></button>
+<span style="margin-left: auto; font-size: 11px; font-weight: 600; color: {{c.bc}};">{{c.pct}}</span>
+</div>
+<div style="font-size: 11px; line-height: 15px; color: #B4C1D6;">{{c.tags}}</div>
+<div style="font-size: 11px; line-height: 15px; color: #C9DCFF; font-weight: 500;">{{c.val}} a year</div>
+</div>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</section>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isCustomers}}" hint-placeholder-val="{{ false }}">
+<div class="scr" style="padding: 56px 48px; display: flex; flex-direction: column; gap: 28px;">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: flex-end;">
+<div>
+<h1 style="margin: 0; font-weight: 600; font-size: 44px; line-height: 48px; letter-spacing: -0.04em;">Customers</h1>
+<p style="margin: 8px 0 0; color: #8494AE;">{{custCount}}</p>
+</div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap;">
+<sc-for list="{{chips}}" as="c" hint-placeholder-count="4">
+<button class="{{c.cls}}" onClick="{{c.pick}}" aria-pressed="{{c.pressed}}">{{c.label}}</button>
+</sc-for>
+</div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px;">
+<sc-for list="{{grid}}" as="c" hint-placeholder-count="8">
+<div class="{{c.gcls}}" style="animation-delay: {{c.dl}};">
+<div class="gcard" style="position: relative; border-radius: 14px; overflow: hidden; background: {{c.bg}}; aspect-ratio: 4 / 3;">
+<button class="cover" onClick="{{c.open}}" aria-label="{{c.aria}}"></button>
+<span aria-hidden="true" style="position: absolute; inset: 0; background-image: linear-gradient(rgba(200,220,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(200,220,255,.05) 1px, transparent 1px); background-size: 24px 24px; -webkit-mask-image: linear-gradient(135deg, #000, transparent 70%); mask-image: linear-gradient(135deg, #000, transparent 70%); pointer-events: none;"></span>
+<svg aria-hidden="true" viewBox="0 0 100 100" style="position: absolute; right: 14px; top: 14px; width: 52px; height: 52px; pointer-events: none;"><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(200,220,255,.15)" style="stroke-width: 7px;"></circle><circle class="arcA" cx="50" cy="50" r="40" fill="none" stroke="{{c.bc}}" transform="rotate(-90 50 50)" style="stroke-width: 7px; stroke-linecap: round; stroke-dasharray: {{c.ring}} 251.3; animation-delay: {{c.dl}};"></circle></svg>
+<span style="position: absolute; left: 14px; top: 14px; font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 999px; color: {{c.bc}}; background: rgba(6,11,22,.55); border: 1px solid rgba(141,184,255,.18); pointer-events: none;">{{c.band}}</span>
+<div style="position: absolute; left: 16px; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 4px; pointer-events: none;">
+<span style="font-weight: 600; font-size: 22px; line-height: 26px; letter-spacing: -0.03em;">{{c.name}}</span>
+<span style="font-size: 13px; color: #9FB0CA;">{{c.tags}}</span>
+<span style="display: flex; justify-content: space-between; font-size: 13px; margin-top: 4px;"><span style="color: #C9DCFF; font-weight: 500;">{{c.val}} a year</span><span style="color: {{c.bc}}; font-weight: 600;">{{c.pct}}</span></span>
+</div>
+<span class="sheen"></span>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isBudget}}" hint-placeholder-val="{{ false }}">
+<div class="scr" style="padding: 56px 48px; display: flex; flex-direction: column; gap: 28px;">
+<div>
+<div style="color: #8DB8FF; font-weight: 500; font-size: 13px;">Retention budget</div>
+<h1 style="margin: 6px 0 0; font-weight: 600; font-size: 44px; line-height: 48px; letter-spacing: -0.04em; max-width: 760px;">Where the money goes, and what comes back</h1>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 20px;">
+<section class="panel" style="flex: 1 1 420px; min-width: 0; padding: 28px; display: flex; flex-direction: column; gap: 14px;">
+<label for="bud" style="color: #8494AE; font-size: 14px;">Budget to spend</label>
+<div style="font-weight: 300; font-size: 60px; line-height: 64px; letter-spacing: -0.045em;">{{budgetText}}</div>
+<input id="bud" type="range" min="100000" max="5000000" step="50000" value="{{budget}}" onChange="{{onBudget}}" style="--pct: {{pct}};">
+<div style="display: flex; gap: 6px; flex-wrap: wrap;">
+<sc-for list="{{quick}}" as="q" hint-placeholder-count="5">
+<button class="{{q.cls}}" onClick="{{q.pick}}">{{q.label}}</button>
+</sc-for>
+</div>
+<div style="font-size: 13px; color: #8494AE; margin-top: 10px;">Strategy</div>
+<div role="radiogroup" aria-label="Strategy" style="display: flex; flex-direction: column; gap: 8px;">
+<sc-for list="{{strats}}" as="s" hint-placeholder-count="3">
+<button class="strat" role="radio" aria-checked="{{s.checked}}" onClick="{{s.pick}}">
+<span style="display: block; position: relative; border-radius: 12px; padding: 1px; overflow: hidden; background: rgba(132,160,210,.16);">
+<sc-if value="{{s.on}}" hint-placeholder-val="{{ false }}"><span class="spin" aria-hidden="true" style="position: absolute; inset: -150%; background: conic-gradient(from 0deg, transparent 0 72%, rgba(141,184,255,.9) 86%, #E6EDF8 92%, transparent 100%);"></span></sc-if>
+<span style="display: flex; position: relative; border-radius: 11px; background: {{s.bg}}; padding: 14px 16px; justify-content: space-between; gap: 12px; align-items: baseline; transition: background .3s;">
+<span style="display: flex; flex-direction: column;"><span style="font-weight: 500;">{{s.label}}</span><span style="font-size: 13px; color: #8494AE;">{{s.desc}}</span></span>
+<span style="font-size: 20px; font-weight: 500; letter-spacing: -0.03em; color: {{s.vc}};">{{s.v}}</span>
+</span>
+</span>
+</button>
+</sc-for>
+</div>
+</section>
+<section style="flex: 1.3 1 540px; min-width: 0; display: flex; flex-direction: column; gap: 20px;">
+<div style="border-radius: 16px; padding: 28px; background: radial-gradient(ellipse 70% 90% at 90% 0%, rgba(59,111,216,.45), transparent 60%), linear-gradient(160deg, #10203F, #0A1428); border: 1px solid rgba(141,184,255,.22); position: relative; overflow: hidden;">
+<div aria-hidden="true" style="position: absolute; inset: 0; background-image: linear-gradient(rgba(200,220,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(200,220,255,.05) 1px, transparent 1px); background-size: 32px 32px; -webkit-mask-image: radial-gradient(ellipse at 90% 0%, #000, transparent 70%); mask-image: radial-gradient(ellipse at 90% 0%, #000, transparent 70%);"></div>
+<div style="color: #C9DCFF; position: relative; font-size: 14px;">Value kept</div>
+<div aria-live="polite" style="position: relative; font-weight: 300; font-size: 84px; line-height: 92px; letter-spacing: -0.05em; display: flex;">
+<span style="color: #8DB8FF;">+</span>
+<sc-for list="{{odo}}" as="c" hint-placeholder-count="9">
+<sc-if value="{{c.isD}}" hint-placeholder-val="{{ true }}"><span style="display: inline-block; height: 92px; overflow: hidden;"><span style="display: flex; flex-direction: column; transform: translateY({{c.ty}}); transition: transform 1.4s cubic-bezier(.22,1,.36,1) {{c.dl}};"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span></span></span></sc-if>
+<sc-if value="{{c.isC}}" hint-placeholder-val="{{ false }}"><span>,</span></sc-if>
+</sc-for>
+</div>
+<div style="position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 10px; padding-top: 16px; border-top: 1px solid rgba(141,184,255,.15);">
+<div><div style="font-size: 12px; color: #8494AE;">Net gain</div><div style="font-size: 22px; font-weight: 500; letter-spacing: -0.03em;">+{{net}}</div></div>
+<div><div style="font-size: 12px; color: #8494AE;">Back per 1 spent</div><div style="font-size: 22px; font-weight: 500; letter-spacing: -0.03em;">{{ratio}}</div></div>
+<div><div style="font-size: 12px; color: #8494AE;">Customers reached</div><div style="font-size: 22px; font-weight: 500; letter-spacing: -0.03em;">{{reached}}</div></div>
+</div>
+</div>
+<div class="panel" style="padding: 24px; display: flex; flex-direction: column; gap: 12px;">
+<div style="display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center;">
+<div><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.02em;">Send the money out</h2><div style="font-size: 13px; color: #8494AE;">Watch the budget split across offers.</div></div>
+<button class="cta" onClick="{{flyGo}}">Allocate budget</button>
+</div>
+<div style="overflow-x: auto;">
+<div style="position: relative; width: 580px; height: 230px; margin: 0 auto;">
+<svg width="580" height="230" viewBox="0 0 580 230" aria-hidden="true" style="position: absolute; inset: 0;">
+<sc-for list="{{flyPaths}}" as="p" hint-placeholder-count="3"><path d="{{p.d}}" fill="none" stroke="rgba(132,160,210,.2)" style="stroke-width: 1.5px;"></path></sc-for>
+<rect x="18" y="85" width="6" height="60" rx="3" fill="#8DB8FF"></rect>
+</svg>
+<div style="position: absolute; left: 34px; top: 100px; font-size: 13px; color: #C9DCFF; font-weight: 500;">{{budgetShort}}</div>
+<sc-for list="{{flyTargets}}" as="t" hint-placeholder-count="3">
+<div style="position: absolute; left: 444px; top: {{t.top}}px; display: flex; align-items: center; gap: 10px;">
+<div style="width: 8px; height: 30px; border-radius: 3px; background: {{t.c}};"></div>
+<div style="display: flex; flex-direction: column; line-height: 18px;"><span style="font-size: 12px; color: #8494AE;">{{t.label}}</span><span style="font-weight: 600; font-size: 16px; opacity: {{t.op}}; transform: translateY({{t.ty}}); transition: opacity .5s, transform .6s cubic-bezier(.22,1,.36,1);">{{t.v}}</span></div>
+</div>
+</sc-for>
+<sc-for list="{{dots}}" as="d" hint-placeholder-count="0">
+<div class="{{d.cls}}" style="position: absolute; left: 0; top: 0; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 999px; background: {{d.c}}; box-shadow: 0 0 12px {{d.c}}; offset-path: path('{{d.path}}'); offset-rotate: 0deg; animation-delay: {{d.dl}};"></div>
+</sc-for>
+</div>
+</div>
+</div>
+</section>
+</div>
+<div style="font-size: 12px; color: #6F84A6;">1,000,000 keeps 1,925,637 (real result). The curve between budgets and the offer split are sample values until wired to the allocation API.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{modalOn}}" hint-placeholder-val="{{ false }}">
+<div class="{{bCls}}" onClick="{{close}}" style="position: fixed; inset: 0; z-index: 40; background: rgba(3,6,13,.72); backdrop-filter: blur(8px);"></div>
+<div role="dialog" aria-modal="true" aria-label="{{m.name}}" class="{{mCls}}" style="position: fixed; z-index: 41; left: 50%; top: 32px; width: min(940px, 94vw); margin-left: calc(min(940px, 94vw) / -2); max-height: calc(100vh - 64px); overflow-y: auto; background: #0A1324; border-radius: 18px; box-shadow: 0 50px 100px -30px rgba(0,0,0,.9), 0 0 0 1px rgba(141,184,255,.14);">
+<div style="position: relative; height: 280px; overflow: hidden; border-radius: 18px 18px 0 0;">
+<div class="kbA" style="position: absolute; inset: -4%; background: {{m.bg}};"></div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background-image: linear-gradient(rgba(200,220,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(200,220,255,.05) 1px, transparent 1px); background-size: 40px 40px; -webkit-mask-image: radial-gradient(ellipse at 80% 20%, #000, transparent 70%); mask-image: radial-gradient(ellipse at 80% 20%, #000, transparent 70%);"></div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 170px; background: linear-gradient(transparent, #0A1324);"></div>
+<button class="round" onClick="{{close}}" aria-label="Close" style="position: absolute; right: 18px; top: 18px; width: 38px; height: 38px;"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="#E6EDF8" style="stroke-width: 1.8px; stroke-linecap: round;"></path></svg></button>
+<div style="position: absolute; left: 36px; bottom: 26px; display: flex; flex-direction: column; gap: 10px;">
+<div class="stag" style="display: flex; gap: 10px; align-items: center;"><span style="font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: 999px; color: {{m.bc}}; background: rgba(6,11,22,.55); border: 1px solid rgba(141,184,255,.2);">{{m.band}}</span><sc-if value="{{m.left}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; color: #8494AE;">Left the bank in the data</span></sc-if></div>
+<h2 class="stag" style="margin: 0; font-weight: 600; font-size: 50px; line-height: 54px; letter-spacing: -0.045em; animation-delay: 80ms;">{{m.name}}</h2>
+<div class="stag" style="display: flex; flex-wrap: wrap; color: #8494AE; font-size: 14px; animation-delay: 160ms;"><span style="color: #C9DCFF; font-weight: 500; padding-right: 12px;">{{m.value}} a year</span><span style="padding: 0 12px; border-left: 1px solid rgba(132,160,210,.25);">{{m.country}}</span><span style="padding: 0 12px; border-left: 1px solid rgba(132,160,210,.25);">Age {{m.age}}</span><span style="padding: 0 12px; border-left: 1px solid rgba(132,160,210,.25);">{{m.tenure}} years</span><span style="padding-left: 12px; border-left: 1px solid rgba(132,160,210,.25);">ID {{m.id}}</span></div>
+</div>
+</div>
+<div style="padding: 12px 36px 36px; display: flex; flex-wrap: wrap; gap: 32px;">
+<div style="flex: 1 1 300px; display: flex; flex-direction: column; gap: 12px;">
+<div class="stag" style="animation-delay: 220ms;">
+<svg viewBox="0 0 260 150" aria-hidden="true" style="width: 100%; max-width: 300px; height: auto; display: block;">
+<defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" style="stop-color: #3B6FD8;"></stop><stop offset="1" style="stop-color: #C9DCFF;"></stop></linearGradient></defs>
+<path d="M20 130 A110 110 0 0 1 240 130" fill="none" stroke="rgba(132,160,210,.14)" style="stroke-width: 10px; stroke-linecap: round;"></path>
+<path d="M20 130 A110 110 0 0 1 240 130" fill="none" stroke="url(#gg)" style="stroke-width: 10px; stroke-linecap: round; stroke-dasharray: {{gLen}} 400; transition: stroke-dasharray 1.2s cubic-bezier(.22,1,.36,1);"></path>
+<g style="transform-origin: 130px 130px; transform: rotate({{gRot}}deg); transition: transform 1.4s cubic-bezier(.34,1.45,.64,1);"><line x1="130" y1="130" x2="130" y2="44" stroke="#E6EDF8" style="stroke-width: 2px; stroke-linecap: round;"></line></g>
+<circle cx="130" cy="130" r="7" fill="#E6EDF8"></circle><circle cx="130" cy="130" r="3" fill="#0A1324"></circle>
+</svg>
+<div style="display: flex; align-items: baseline; gap: 10px;"><span style="font-weight: 300; font-size: 48px; line-height: 52px; letter-spacing: -0.045em;">{{gPct}}</span><span style="font-size: 13px; color: #8494AE;">chance of leaving {{gNote}}</span></div>
+</div>
+<div style="font-size: 13px; color: #8494AE; margin-top: 4px;">Try an offer</div>
+<sc-for list="{{offers}}" as="o" hint-placeholder-count="3">
+<button class="{{o.cls}} stag" onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="animation-delay: {{o.dl}};"><span style="display: flex; flex-direction: column;"><span style="font-weight: 500;">{{o.label}}</span><span style="font-size: 12px; color: #8494AE;">Costs {{o.cost}}, keeps about {{o.keep}}</span></span><span style="font-weight: 500; color: #C9DCFF;">{{o.pct}}</span></button>
+</sc-for>
+<button class="cta" onClick="{{send}}" style="align-self: flex-start; margin-top: 4px;">Send offer</button>
+</div>
+<div style="flex: 1.2 1 340px; display: flex; flex-direction: column; gap: 18px;">
+<p class="stag" style="margin: 0; font-size: 16px; line-height: 26px; color: #B4C1D6; animation-delay: 260ms;">{{m.story}}</p>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;">
+<sc-for list="{{facts}}" as="f" hint-placeholder-count="6">
+<div class="stag panel" style="border-radius: 12px; padding: 12px 14px; animation-delay: {{f.dl}};"><div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8494AE;"><span style="width: 5px; height: 5px; border-radius: 999px; background: {{f.dot}};"></span>{{f.label}}</div><div style="font-size: 22px; font-weight: 500; letter-spacing: -0.03em;">{{f.value}}</div></div>
+</sc-for>
+</div>
+<div style="font-size: 13px; color: #8494AE;">Why the model flags them</div>
+<sc-for list="{{drivers}}" as="d" hint-placeholder-count="4">
+<div class="stag" style="display: flex; flex-direction: column; gap: 6px; animation-delay: {{d.dl}};">
+<div style="display: flex; justify-content: space-between; gap: 10px; font-size: 14px;"><span>{{d.label}}</span><span style="font-size: 12px; color: {{d.c}};">{{d.word}}</span></div>
+<div style="height: 4px; border-radius: 999px; background: rgba(132,160,210,.14); overflow: hidden;"><div class="grow" style="height: 100%; border-radius: 999px; width: {{d.w}}; background: {{d.bar}}; animation-delay: {{d.dl}};"></div></div>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{toastOn}}" hint-placeholder-val="{{ false }}">
+<div class="toast" role="status">{{toast}}</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { intro: true, scr: 'home', feat: 0, fk: 0, offs: {}, modal: -1, closing: false, offer: -1, toast: '', tk: 0, filter: 'all', gk: 0, budget: 1000000, strat: 0, fly: 0, arrived: false };
+  }
+  componentDidMount() {
+    this.t = [];
+    this.endIntro();
+    this.iv = setInterval(() => {
+      if (this.state.scr === 'home' && this.state.modal < 0 && !this.state.intro) this.setState({ feat: (this.state.feat + 1) % 4, fk: this.state.fk + 1 });
+    }, 8000);
+  }
+  componentWillUnmount() { (this.t || []).forEach(clearTimeout); clearInterval(this.iv); }
+  later(fn, ms) { this.t.push(setTimeout(fn, ms)); }
+  endIntro() {
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.later(() => this.setState({ intro: false, fk: this.state.fk + 1 }), reduce ? 0 : 2900);
+  }
+  people() {
+    if (this._p) return this._p;
+    const R = [
+      ['15671591', 'Castiglione', 'M', 'Spain', 52, 3, 96196, 4, 439, 0, 198875, 0.995, 1],
+      ['15616213', 'Levy', 'F', 'Germany', 51, 9, 138215, 1, 555, 0, 198715, 0.995, 1],
+      ['15600399', 'Trentino', 'M', 'France', 60, 4, 0, 1, 598, 0, 197727, 0.995, 1],
+      ['15666548', 'Chung', 'F', 'Germany', 56, 2, 111920, 3, 466, 0, 197634, 0.995, 1],
+      ['15815316', 'Kennedy', 'M', 'France', 50, 9, 76817, 4, 644, 0, 196371, 0.995, 1],
+      ['15694765', 'Sabbatini', 'M', 'Germany', 49, 6, 113882, 1, 610, 0, 195814, 0.995, 1],
+      ['15655123', 'Dumetolisa', 'F', 'Spain', 45, 9, 131355, 3, 505, 0, 195395, 0.995, 1],
+      ['15661473', 'Boni', 'M', 'Germany', 51, 4, 126725, 1, 780, 0, 195259, 0.995, 1],
+      ['15569274', 'Pisano', 'M', 'Germany', 49, 2, 116933, 1, 678, 0, 195054, 0.995, 1],
+      ['15766575', 'Larionova', 'F', 'Germany', 62, 8, 140745, 1, 612, 0, 193438, 0.995, 1],
+      ['15721460', 'Lorenzo', 'M', 'France', 60, 8, 185649, 1, 678, 0, 192157, 0.995, 1],
+      ['15616550', 'Chidiebele', 'M', 'Germany', 44, 10, 116363, 2, 698, 0, 198059, 0.38, 0],
+      ['15588537', 'Robinson', 'F', 'Spain', 41, 9, 109013, 1, 615, 0, 196500, 0.22, 0],
+      ['15771873', 'Buccho', 'F', 'Germany', 37, 2, 103769, 2, 776, 0, 194099, 0.31, 0],
+      ['15691483', 'Chin', 'F', 'France', 25, 5, 0, 2, 549, 0, 190858, 0.12, 0]
+    ];
+    const BG = {
+      Germany: 'radial-gradient(ellipse 80% 90% at 85% 10%, #2D5BB8 0%, transparent 60%), linear-gradient(150deg, #142A55 0%, #0C1830 100%)',
+      France: 'radial-gradient(ellipse 80% 90% at 85% 10%, #3E7BC7 0%, transparent 60%), linear-gradient(150deg, #13304F 0%, #0B1629 100%)',
+      Spain: 'radial-gradient(ellipse 80% 90% at 85% 10%, #4B5FC4 0%, transparent 60%), linear-gradient(150deg, #1C2457 0%, #0D1430 100%)'
+    };
+    const GL = { Germany: 'rgba(45,91,184,.55)', France: 'rgba(62,123,199,.5)', Spain: 'rgba(75,95,196,.5)' };
+    this._p = R.map((r, i) => {
+      const p = r[11];
+      const band = p >= 0.5 ? ['High risk', '#C9DCFF'] : p >= 0.25 ? ['Medium risk', '#7FA6E6'] : ['Low risk', '#5A7CB3'];
+      const tags = [r[7] + (r[7] === 1 ? ' product' : ' products'), r[9] ? 'Active' : 'Inactive', 'Age ' + r[4]].join(', ');
+      return { i, id: r[0], sur: r[1], g: r[2], country: r[3], age: r[4], tenure: r[5], bal: r[6], prod: r[7], cs: r[8], active: r[9], value: r[10], p, left: r[12] === 1,
+        name: (r[2] === 'M' ? 'Mr ' : 'Ms ') + r[1], band: band[0], bc: band[1], bg: BG[r[3]], glow: GL[r[3]], tags, rar: r[10] * p };
+    });
+    return this._p;
+  }
+  drivers(c) {
+    const D = [];
+    if (c.prod === 4) D.push(['Holds 4 bank products', 1.5]);
+    if (c.prod === 3) D.push(['Holds 3 bank products', 1.3]);
+    if (c.prod === 2) D.push(['Holds 2 bank products', -0.7]);
+    if (c.active === 0) D.push(['Not an active member', 1.0]);
+    if (c.age >= 50) D.push(['Age ' + c.age, 1.0]); else if (c.age >= 44) D.push(['Age ' + c.age, 0.6]); else D.push(['Age ' + c.age, -0.4]);
+    if (c.country === 'Germany') D.push(['Based in Germany', 0.6]);
+    if (c.cs < 520) D.push(['Low credit score (' + c.cs + ')', 0.35]);
+    if (c.tenure <= 3) D.push(['Only ' + c.tenure + ' years with the bank', 0.25]);
+    if (c.tenure >= 9) D.push([c.tenure + ' years with the bank', -0.25]);
+    return D.sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 4);
+  }
+  open(i) { this.setState({ modal: i, closing: false, offer: -1 }); }
+  close() { this.setState({ closing: true }); this.later(() => this.setState({ modal: -1, closing: false }), 280); }
+  toastMsg(msg) { const k = this.state.tk + 1; this.setState({ toast: msg, tk: k }); this.later(() => { if (this.state.tk === k) this.setState({ toast: '' }); }, 4000); }
+  go(s) { if (s !== this.state.scr) { this.setState({ scr: s, gk: this.state.gk + 1 }); } }
+  digits(n, pad) {
+    const s = String(Math.round(n)).padStart(pad, '0'); const out = [];
+    for (let i = 0; i < s.length; i++) { if (i > 0 && (s.length - i) % 3 === 0) out.push({ isD: false, isC: true }); out.push({ isD: true, isC: false, ty: '-' + (Number(s[i]) * 10) + '%', dl: (i * 60) + 'ms' }); }
+    return out;
+  }
+  renderVals() {
+    const S = this.state;
+    const P = this.people();
+    const full = (v) => Math.round(v).toLocaleString('en-US');
+    const short = (v) => v >= 1e6 ? (v / 1e6).toFixed(2) + 'M' : Math.round(v / 1000) + 'K';
+    const pct = (p) => p >= 0.99 ? '99%+' : Math.round(p * 100) + '%';
+    const he = (c) => c.g === 'M' ? 'He' : 'She';
+    const story = (c) => c.p >= 0.5
+      ? c.name + ' is very likely to leave. ' + he(c) + ' holds ' + c.prod + (c.prod === 1 ? ' product' : ' products') + (c.active ? '' : ' and has not used the account recently') + ', putting ' + full(c.rar) + ' of yearly value at risk.'
+      : c.name + ' is stable for now, with ' + full(c.rar) + ' of yearly value at risk. Worth a light-touch check in.';
+    const top = P.slice().sort((a, b) => b.rar - a.rar).slice(0, 10);
+    const card = (c, k, isTop) => ({
+      name: c.name, country: c.country, bc: c.bc, band: c.band, pct: pct(c.p) + ' chance of leaving', pw: (c.p * 100).toFixed(0) + '%', ring: (251.3 * c.p).toFixed(1), val: short(c.value), tags: c.tags, bg: c.bg,
+      origin: k % 5 === 0 ? 'left center' : k % 5 === 4 ? 'right center' : 'center center',
+      isTop, rank: String(k + 1), ml: isTop ? '32%' : '0',
+      aria: 'Open ' + c.name, quickAria: 'Add ' + c.name + ' to the offer list',
+      open: () => this.open(c.i), quick: () => this.toastMsg(c.name + ' added to the offer list.')
+    });
+    const RD = [
+      ['top', 'Top 10 value at risk today', top, true],
+      ['de', 'Germany, the highest leaving rate', P.filter(c => c.country === 'Germany'), false],
+      ['prod', 'Holding 3 or 4 products', P.filter(c => c.prod >= 3), false],
+      ['stay', 'Still with the bank, worth watching', P.filter(c => !c.left), false],
+      ['fs', 'France and Spain', P.filter(c => c.country !== 'Germany'), false]
+    ];
+    const rows = RD.map(([key, title, items, isTop], ri) => {
+      const pages = Math.max(1, Math.ceil(items.length / 5)), off = Math.min(S.offs[key] || 0, pages - 1);
+      return { title, count: items.length + ' customers', off, dl: (ri * 120) + 'ms',
+        pips: pages > 1 ? Array.from({ length: pages }, (_, k) => ({ c: k === off ? '#C9DCFF' : 'rgba(132,160,210,.25)' })) : [],
+        noPrev: off === 0, noNext: off >= pages - 1,
+        prev: () => this.setState({ offs: Object.assign({}, S.offs, { [key]: Math.max(0, off - 1) }) }),
+        next: () => this.setState({ offs: Object.assign({}, S.offs, { [key]: Math.min(pages - 1, off + 1) }) }),
+        items: items.map((c, k) => card(c, k, isTop)) };
+    });
+    const F = top.slice(0, 4);
+    const fc = F[S.feat];
+    const ab = S.fk % 2 ? 'A' : 'B';
+    const ticks = [];
+    for (let k = 0; k < 60; k++) { const a = k / 60 * Math.PI * 2, r1 = k % 5 === 0 ? 166 : 170; ticks.push({ x1: (200 + r1 * Math.cos(a)).toFixed(1), y1: (200 + r1 * Math.sin(a)).toFixed(1), x2: (200 + 174 * Math.cos(a)).toFixed(1), y2: (200 + 174 * Math.sin(a)).toFixed(1) }); }
+    const navItems = [['home', 'Home'], ['customers', 'Customers'], ['budget', 'Retention budget']];
+    const shown = P.filter(c => S.filter === 'all' || (S.filter === 'high' && c.p >= 0.5) || (S.filter === 'medium' && c.p >= 0.25 && c.p < 0.5) || (S.filter === 'low' && c.p < 0.25)).sort((a, b) => b.rar - a.rar);
+    const gcls = S.gk % 2 ? 'gA' : 'gB';
+    const A = 1925637 / (1 - Math.exp(-1 / 3)), MS = [1, 0.62, 0.81];
+    const keptAt = (b, s) => A * (1 - Math.exp(-b / 3000000)) * MS[s];
+    const kept = keptAt(S.budget, S.strat);
+    const OF = [[50, 'Better savings rate', '#C9DCFF', 0.52, 1.12], [115, 'Waive account fees', '#7FA6E6', 0.30, 0.92], [180, 'Relationship manager calls', '#3B6FD8', 0.18, 0.85]];
+    const wsum = OF.reduce((s, o) => s + o[3] * o[4], 0);
+    const pathFor = (y) => 'M24 115 C 240 115, 260 ' + y + ', 436 ' + y;
+    const m = S.modal >= 0 ? P[S.modal] : null;
+    const MO = [['Waive account fees', 300, 0.8], ['Better savings rate', 500, 0.65], ['Call from relationship manager', 900, 0.5]];
+    const gp = m ? (S.offer < 0 ? m.p : m.p * MO[S.offer][2]) : 0;
+    const D = m ? this.drivers(m) : [];
+    const dmax = D.length ? Math.max.apply(null, D.map(d => Math.abs(d[1]))) : 1;
+    return {
+      intro: S.intro,
+      replayIntro: () => { this.setState({ intro: false }); this.later(() => { this.setState({ intro: true }); this.endIntro(); }, 50); },
+      navs: navItems.map(([k, label]) => ({ label, cls: S.scr === k ? 'nav on' : 'nav', cur: S.scr === k ? 'page' : 'false', ul: S.scr === k ? 1 : 0, go: () => this.go(k) })),
+      isHome: S.scr === 'home', isCustomers: S.scr === 'customers', isBudget: S.scr === 'budget',
+      goBudget: () => this.go('budget'),
+      feat: { name: fc.name, glow: fc.glow, pct: pct(fc.p), arc: (942.5 * fc.p).toFixed(1), value: full(fc.value), country: fc.country, age: fc.age, tenure: fc.tenure, story: story(fc), rankText: 'Number ' + (S.feat + 1) + ' in value at risk today', open: () => this.open(fc.i) },
+      bbBg: 'kb' + ab, txCls: 'tx' + ab, arcCls: 'arc' + ab, ticks,
+      stories: F.map((c, i) => ({ label: 'Show ' + c.name, sel: i === S.feat ? 'true' : 'false', w: i < S.feat ? '100%' : (i === S.feat ? '100%' : '0%'), cls: i === S.feat ? 'pr' + ab : '', pick: () => this.setState({ feat: i, fk: S.fk + 1 }) })),
+      storyText: (S.feat + 1) + ' of 4',
+      rows,
+      custCount: shown.length + ' customers, sorted by value at risk',
+      chips: [['all', 'All'], ['high', 'High risk'], ['medium', 'Medium risk'], ['low', 'Low risk']].map(([k, label]) => ({ label, cls: S.filter === k ? 'chip on' : 'chip', pressed: S.filter === k ? 'true' : 'false', pick: () => this.setState({ filter: k, gk: S.gk + 1 }) })),
+      grid: shown.map((c, k) => ({ name: c.name, bc: c.bc, band: c.band, pct: pct(c.p), ring: (251.3 * c.p).toFixed(1), val: short(c.value), tags: c.country + ', ' + c.tags, bg: c.bg, gcls, dl: (k * 55) + 'ms', aria: 'Open ' + c.name, open: () => this.open(c.i) })),
+      budget: S.budget, budgetText: full(S.budget), budgetShort: short(S.budget), pct: ((S.budget - 100000) / 4900000 * 100).toFixed(1) + '%',
+      onBudget: (e) => this.setState({ budget: Number(e.target.value), arrived: false }),
+      quick: [250000, 500000, 1000000, 2000000, 5000000].map(v => ({ label: short(v).replace('.00', ''), cls: S.budget === v ? 'seg on' : 'seg', pick: () => this.setState({ budget: v, arrived: false }) })),
+      strats: [['Best return', 'Most value kept per unit spent'], ['Same for everyone', 'Even split across flagged customers'], ['Most at-risk first', 'Highest chance of leaving first']].map((s, i) => ({ label: s[0], desc: s[1], v: '+' + short(keptAt(S.budget, i)), on: S.strat === i, checked: S.strat === i ? 'true' : 'false', bg: S.strat === i ? '#0F1E3B' : '#0A1428', vc: S.strat === i ? '#C9DCFF' : '#8494AE', pick: () => this.setState({ strat: i, arrived: false }) })),
+      odo: this.digits(S.intro ? 0 : kept, 7), net: short(Math.max(0, kept - S.budget)), ratio: (kept / S.budget).toFixed(2), reached: full(Math.round(S.budget / 470)),
+      flyPaths: OF.map(o => ({ d: pathFor(o[0]) })),
+      flyTargets: OF.map(o => ({ top: o[0] - 15, label: o[1], c: o[2], v: '+' + short(kept * o[3] * o[4] / wsum), op: S.arrived ? 1 : 0, ty: S.arrived ? '0px' : '6px' })),
+      dots: S.fly > 0 ? Array.from({ length: 45 }, (_, i) => { const o = OF[i % 3]; return { path: pathFor(o[0]), c: o[2], dl: (Math.floor(i / 3) * 70 + (i % 3) * 25) + 'ms', cls: S.fly % 2 ? 'flyA' : 'flyB' }; }) : [],
+      flyGo: () => { this.setState({ fly: S.fly + 1, arrived: false }); this.later(() => this.setState({ arrived: true }), 2300); },
+      modalOn: !!m, bCls: S.closing ? 'bOut' : 'bIn', mCls: S.closing ? 'mOut' : 'mIn',
+      close: () => this.close(),
+      m: m ? { name: m.name, bc: m.bc, band: m.band, left: m.left, value: full(m.value), country: m.country, age: m.age, tenure: m.tenure, id: m.id, bg: m.bg, story: story(m) } : {},
+      gLen: (345.6 * gp).toFixed(1), gRot: (-90 + 180 * gp).toFixed(1), gPct: pct(gp), gNote: m && S.offer >= 0 ? '(was ' + pct(m.p) + ')' : '',
+      offers: m ? MO.map((o, i) => ({ label: o[0], cost: full(o[1]), keep: full(Math.max(0, m.value * (m.p - m.p * o[2]) - o[1])), pct: pct(m.p * o[2]), cls: S.offer === i ? 'offer on' : 'offer', pressed: S.offer === i ? 'true' : 'false', dl: (300 + i * 80) + 'ms', pick: () => this.setState({ offer: i }) })) : [],
+      send: () => { if (m) this.toastMsg((S.offer >= 0 ? MO[S.offer][0] : 'Offer') + ' sent for ' + m.name + '.'); },
+      facts: m ? [['Yearly value', full(m.value), m.p >= 0.5], ['Balance', full(m.bal), false], ['Products', String(m.prod), m.prod >= 3], ['Credit score', String(m.cs), m.cs < 520], ['Active', m.active ? 'Yes' : 'No', !m.active], ['Years', String(m.tenure), m.tenure <= 3]].map((x, i) => ({ label: x[0], value: x[1], dot: x[2] ? '#C9DCFF' : 'rgba(132,160,210,.35)', dl: (280 + i * 50) + 'ms' })) : [],
+      drivers: D.map(([label, v], i) => ({ label, word: v > 0 ? 'Raises risk' : 'Lowers risk', c: v > 0 ? '#C9DCFF' : '#5A7CB3', bar: v > 0 ? 'linear-gradient(90deg, #3B6FD8, #C9DCFF)' : '#3A5683', w: (Math.abs(v) / dmax * 100).toFixed(0) + '%', dl: (450 + i * 110) + 'ms' })),
+      toastOn: !!S.toast, toast: S.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

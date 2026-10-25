@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Motion library</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Serif:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1726}
+a{color:#9DBBDB}a:hover{color:#C5D7EA}
+.tab{display:inline-block;padding:8px 16px;border-radius:8px;font-size:14px;line-height:20px;color:#A3ADBF;text-decoration:none;transition:color .2s,background .2s}
+.tab:hover{color:#E6E9EF;background:#1B2842}
+.tab.on{background:#3A5F8C;color:#F1F3F7}
+.btn{font:inherit;font-size:14px;font-weight:600;padding:10px 16px;min-height:44px;border-radius:8px;border:1px solid #34446A;background:#1B2842;color:#E6E9EF;cursor:pointer;transition:background .2s,border-color .2s}
+.btn:hover{border-color:#4A72A3}
+.btn.pri{background:#3A5F8C;border-color:#3A5F8C;color:#F1F3F7}
+.btn.pri:hover{background:#4A72A3}
+.btn.on{background:#22355A;border-color:#9DBBDB;color:#E6E9EF}
+.tab:focus-visible,.btn:focus-visible,.acc:focus-visible,.strat:focus-visible,.item:focus-visible,input:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(157,187,219,.4)}
+.demo{background:#152036;border:1px solid #26344F;border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.acc{font:inherit;color:#E6E9EF;width:100%;text-align:left;background:transparent;border:0;padding:14px 4px;min-height:44px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.strat{font:inherit;color:#E6E9EF;text-align:left;cursor:pointer;width:100%;border:0;padding:0;background:transparent;border-radius:14px}
+.item{font:inherit;color:#E6E9EF;width:100%;text-align:left;border:0;background:transparent;padding:10px 12px;min-height:44px;border-radius:8px;cursor:pointer;display:flex;justify-content:space-between;gap:10px}
+.item:hover{background:#22355A}
+.spin{animation:spin 4s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.shimmer{background:linear-gradient(90deg,#1B2842 0%,#26344F 40%,#1B2842 80%);background-size:300% 100%;animation:shim 1.3s ease-in-out infinite}
+@keyframes shim{from{background-position:100% 0}to{background-position:-100% 0}}
+.rowin{animation:rowin .6s cubic-bezier(.22,1,.36,1) both}
+@keyframes rowin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.flyA{animation:flyA 1.5s cubic-bezier(.65,0,.35,1) both}
+.flyB{animation:flyB 1.5s cubic-bezier(.65,0,.35,1) both}
+@keyframes flyA{0%{offset-distance:0%;opacity:0}10%{opacity:1}90%{opacity:1}100%{offset-distance:100%;opacity:0}}
+@keyframes flyB{0%{offset-distance:0%;opacity:0}10%{opacity:1}90%{opacity:1}100%{offset-distance:100%;opacity:0}}
+.pop{animation:pop .5s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion: reduce){.spin,.shimmer,.rowin,.flyA,.flyB,.pop{animation:none}}
+</style>
+</helmet>
+<div style="min-height: 2500px; box-sizing: border-box; background: radial-gradient(ellipse 70% 30% at 15% 0%, #1A2A47, #0F1726 70%); color: #E6E9EF; font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 22px;">
+<header style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; padding: 16px 32px; background: #152036; border-bottom: 1px solid #26344F;">
+<div style="font-family: 'IBM Plex Serif', Georgia, serif; font-weight: 600; font-size: 20px; line-height: 28px;">Churn &amp; Revenue Risk</div>
+<nav aria-label="Concepts" style="display: flex; flex-wrap: wrap; gap: 4px;">
+<a class="tab" href="Main.dc.html">Customer galaxy</a>
+<a class="tab" href="Flow.dc.html">Money flow</a>
+<a class="tab" href="Budget.dc.html">Budget simulator</a>
+<a class="tab" href="Customer.dc.html">Customer profile</a>
+<a class="tab on" href="Motion.dc.html" aria-current="page">Motion library</a>
+</nav>
+</header>
+<main style="max-width: 1240px; margin: 0 auto; padding: 32px; display: flex; flex-direction: column; gap: 24px;">
+<div style="display: flex; flex-direction: column; gap: 6px;">
+<h1 style="margin: 0; font-family: 'IBM Plex Serif', Georgia, serif; font-size: 36px; line-height: 44px; font-weight: 600;">Motion library</h1>
+<p style="margin: 0; color: #A3ADBF; max-width: 760px;">Ten interaction patterns used on high-end product sites, built for this dashboard. Every one is live: hover, click and replay them. Each card says where it belongs.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 20px;">
+
+<section class="demo">
+<div style="display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-start;">
+<div><h2 style="margin: 0; font-size: 18px; line-height: 26px; font-weight: 600;">1. Rolling digits</h2><div style="font-size: 13px; color: #8A95A8;">Use for: every headline number (value at risk, value kept)</div></div>
+<button class="btn" onClick="{{odoNew}}">Change number</button>
+</div>
+<div style="color: #A3ADBF; font-size: 14px;">Value at risk</div>
+<div aria-live="polite" style="font-family: 'IBM Plex Serif', Georgia, serif; font-weight: 600; font-size: 56px; line-height: 62px; display: flex; font-variant-numeric: tabular-nums;">
+<sc-for list="{{odo}}" as="c" hint-placeholder-count="11">
+<sc-if value="{{c.isD}}" hint-placeholder-val="{{ true }}">
+<span style="display: inline-block; height: 62px; overflow: hidden;"><span style="display: flex; flex-direction: column; transform: translateY({{c.ty}}); transition: transform 1.4s cubic-bezier(.22,1,.36,1) {{c.dl}};"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span></span></span>
+</sc-if>
+<sc-if value="{{c.isC}}" hint-placeholder-val="{{ false }}"><span>,</span></sc-if>
+</sc-for>
+</div>
+<div style="font-size: 13px; color: #8A95A8;">Each digit is a column of 0 to 9 that slides to its value, with a small delay per digit so the number rolls from left to right.</div>
+</section>
+
+<section class="demo">
+<div style="display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-start;">
+<div><h2 style="margin: 0; font-size: 18px; line-height: 26px; font-weight: 600;">2. Masked word reveal</h2><div style="font-size: 13px; color: #8A95A8;">Use for: the headline sentence at the top of each page</div></div>
+<button class="btn" onClick="{{wordsReplay}}">Replay</button>
+</div>
+<p style="margin: 0; font-family: 'IBM Plex Serif', Georgia, serif; font-size: 32px; line-height: 42px; font-weight: 600;">
+<sc-for list="{{words}}" as="w" hint-placeholder-count="12">
+<span style="display: inline-block; overflow: hidden; vertical-align: bottom; padding-bottom: 4px; margin-right: 0.25em;"><span style="display: inline-block; color: {{w.c}}; transform: translateY({{w.ty}}); opacity: {{w.op}}; transition: transform .8s cubic-bezier(.22,1,.36,1) {{w.dl}}, opacity .8s ease {{w.dl}};">{{w.t}}</span></span>
+</sc-for>
+</p>
+<div style="font-size: 13px; color: #8A95A8;">Each word rises out of a hidden line, 55ms after the one before. Key figures are tinted.</div>
+</section>
+
+<section class="demo">
+<div><h2 style="margin: 0; font-size: 18px; line-height: 26px; font-weight: 600;">3. Spotlight and tilt card</h2><div style="font-size: 13px; color: #8A95A8;">Use for: customer cards and KPI tiles. Move your mouse over it.</div></div>
+<div onMouseMove="{{spotMove}}" onMouseLeave="{{spotLeave}}" style="border-radius: 14px; border: 1px solid #34446A; padding: 24px; min-height: 180px; display: flex; flex-direction: column; gap: 10px; background: radial-gradient(360px circle at {{sx}}px {{sy}}px, rgba(157,187,219,{{sa}}), transparent 60%), #1B2842; transform: perspective(900px) rotateX({{rx}}deg) rotateY({{ry}}deg); transition: transform {{st}}, background .2s; will-change: transform;">
+<div style="display: flex; align-items: center; gap: 14px;">
+<div style="width: 52px; height: 52px; border-radius: 999px; background: #22355A; color: #9DBBDB; display: grid; place-items: center; font-family: 'IBM Plex Serif', serif; font-weight: 600; font-size: 20px;">LE</div>
+<div><div style="font-family: 'IBM Plex Serif', serif; font-size: 22px; font-weight: 600;">Ms Levy</div><div style="color: #A3ADBF; font-size: 14px;">Germany, 51, with the bank for 9 years</div></div>
+<span style="margin-left: auto; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; color: #D0848E; background: #4A2530;">High risk</span>
+</div>
+<div style="display: flex; gap: 28px; flex-wrap: wrap;">
+<div><div style="color: #A3ADBF; font-size: 13px;">Yearly value</div><div style="font-family: 'IBM Plex Serif', serif; font-size: 26px; font-weight: 600;">198,715</div></div>
+<div><div style="color: #A3ADBF; font-size: 13px;">Chance of leaving</div><div style="font-family: 'IBM Plex Serif', serif; font-size: 26px; font-weight: 600; color: #D0848E;">99%+</div></div>
+</div>
+</div>
+<div style="font-size: 13px; color: #8A95A8;">A soft light follows the cursor and the card tilts up to 4 degrees toward it, then settles back when the mouse leaves.</div>
+</section>
+
+<section class="demo">
+<div><h2 style="margin: 0; font-size: 18px; line-height: 26px; font-weight: 600;">4. Smooth expanding rows</h2><div style="font-size: 13px; color: #8A95A8;">Use for: the customer list and the allocation table</div></div>
+<div style="display: flex; flex-direction: column;">
+<sc-for list="{{acc}}" as="a" hint-placeholder-count="4">
+<div style="border-bottom: 1px solid #26344F;">
+<button class="acc" onClick="{{a.toggle}}" aria-expanded="{{a.exp}}">
+<span style="display: flex; flex-direction: column;"><span style="font-weight: 600;">{{a.name}}</span><span style="font-size: 13px; color: #A3ADBF;">{{a.sub}}</span></span>
+<span style="display: flex; align-items: center; gap: 12px;"><span style="font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; color: {{a.c}}; background: {{a.soft}};">{{a.band}}</span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style="transform: rotate({{a.rot}}deg); transition: transform .4s cubic-bezier(.22,1,.36,1);"><path d="M4 6l4 4 4-4" fill="none" stroke="#A3ADBF" style="stroke-width: 1.8px; stroke-linecap: round; stroke-linejoin: round;"></path></svg></span>
+</button>
+<div style="display: grid; grid-template-rows: {{a.rows}}; transition: grid-template-rows .5s cubic-bezier(.22,1,.36,1);">
+<div style="overflow: hidden; min-height: 0;">
+<div style="padding: 0 4px 16px; display: flex; flex-direction: column; gap: 10px; opacity: {{a.op}}; transform: translateY({{a.ty}}); transition: opacity .4s ease .1s, transform .5s cubic-bezier(.22,1,.36,1) .05s;">
+<div style="color: #A3ADBF; font-size: 14px;">{{a.detail}}</div>
+<div style="height: 8px; border-radius: 999px; background: #1F2B45; overflow: hidden;"><div style="height: 100%; width: {{a.w}}; background: {{a.c}}; border-radius: 999px; transition: width .9s cubic-bezier(.22,1,.36,1) .15s;"></div></div>
+</div>
+</div>
+</div>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section class="demo">
+<div><h2 style="margin: 0; font-size: 18px; line-height: 26px; font-weight: 600;">5. Travelling border on the chosen option</h2><div style="font-size: 13px; color: #8A95A8;">Use for: the selected strategy or offer card. Click another card.</div></div>
+<div role="radiogroup" aria-label="Strategy" style="display: flex; flex-direction: column; gap: 12px;">
+<sc-for list="{{strats}}" as="s" hint-placeholder-count="3">
+<button class="strat" role="radio" aria-checked="{{s.checked}}" onClick="{{s.pick}}">
+<span style="display: block; position: relative; border-radius: 14px; padding: 1px; overflow: hidden; background: #26344F;">
+<sc-if value="{{s.on}}" hint-placeholder-val="{{ false }}"><span class="spin" aria-hidden="true" style="position: absolute; inset: -150%; background: conic-gradient(from 0deg, transparent 0 70%, #9DBBDB 82%, #D0848E 90%, transparent 100%);"></span></sc-if>
+<span style="display: flex; position: relative; border-radius: 13px; background: {{s.bg}}; padding: 16px 18px; justify-content: space-between; gap: 12px; align-items: baseline; transition: background .3s;">
+<span style="display: flex; flex-direction: column;"><span style="font-weight: 600;">{{s.label}}</span><span style="font-size: 13px; color: #A3ADBF;">{{s.desc}}</span></span>
+<span style="font-family: 'IBM Plex Serif', serif; font-size: 22px; font-weight: 600; color: {{s.vc}};">{{s.v}}</span>
+</span>
+</span>
+</button>
+</sc-for>
+</div>
+</section>
+
+<section class="demo">
+<div><h2 style="margin: 0; font-size: 18px; line-height: 26px; font-weight: 600;">6. Spring needle gauge</h2><div style="font-size: 13px; color: #8A95A8;">Use for: chance of leaving on the customer profile. Pick an offer.</div></div>
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center;">
+<div style="position: relative; flex: 1 1 260px; max-width: 320px;">
+<svg viewBox="0 0 260 150" aria-hidden="true" style="width: 100%; height: auto; display: block;">
+<path d="M20 130 A110 110 0 0 1 240 130" fill="none" stroke="#1F2B45" style="stroke-width: 18px; stroke-linecap: round;"></path>
+<path d="M20 130 A110 110 0 0 1 240 130" fill="none" stroke="{{gC}}" style="stroke-width: 18px; stroke-linecap: round; stroke-dasharray: {{gLen}} 400; transition: stroke-dasharray 1.1s cubic-bezier(.22,1,.36,1), stroke .6s;"></path>
+<sc-for list="{{ticks}}" as="t" hint-placeholder-count="11">
+<line x1="{{t.x1}}" y1="{{t.y1}}" x2="{{t.x2}}" y2="{{t.y2}}" stroke="#34446A" style="stroke-width: 2px;"></line>
+</sc-for>
+<g style="transform-origin: 130px 130px; transform: rotate({{gRot}}deg); transition: transform 1.2s cubic-bezier(.34,1.56,.64,1);">
+<line x1="130" y1="130" x2="130" y2="38" stroke="#E6E9EF" style="stroke-width: 3px; stroke-linecap: round;"></line>
+</g>
+<circle cx="130" cy="130" r="9" fill="#E6E9EF"></circle>
+<circle cx="130" cy="130" r="4" fill="#152036"></circle>
+</svg>
+<div style="text-align: center; font-family: 'IBM Plex Serif', serif; font-size: 36px; font-weight: 600; margin-top: 4px;">{{gPct}}</div>
+<div style="text-align: center; color: #A3ADBF; font-size: 13px;">chance of leaving</div>
+</div>
+<div role="radiogroup" aria-label="Offer" style="flex: 1 1 180px; display: flex; flex-direction: column; gap: 8px;">
+<sc-for list="{{gOffers}}" as="o" hint-placeholder-count="4">
+<button class="{{o.cls}}" role="radio" aria-checked="{{o.checked}}" onClick="{{o.pick}}" style="text-align: left;">{{o.label}}</button>
+</sc-for>
+</div>
+</div>
+<div style="font-size: 13px; color: #8A95A8;">The needle uses a spring curve, so it swings slightly past the new value and settles back.</div>
+</section>
+
+<section class="demo">
+<div style="display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-start;">
+<div><h2 style="margin: 0; font-size: 18px; line-height: 26px; font-weight: 600;">7. Shimmer loading to content</h2><div style="font-size: 13px; color: #8A95A8;">Use for: every table while the API responds</div></div>
+<button class="btn" onClick="{{skelReplay}}">Reload</button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; min-height: 230px;">
+<sc-if value="{{loading}}" hint-placeholder-val="{{ false }}">
+<sc-for list="{{skelRows}}" as="r" hint-placeholder-count="5">
+<div style="display: flex; gap: 12px; align-items: center; height: 36px;"><div class="shimmer" style="width: 32px; height: 32px; border-radius: 999px;"></div><div class="shimmer" style="height: 12px; border-radius: 6px; width: {{r.w}};"></div><div class="shimmer" style="height: 12px; border-radius: 6px; width: 70px; margin-left: auto;"></div></div>
+</sc-for>
+</sc-if>
+<sc-if value="{{loaded}}" hint-placeholder-val="{{ true }}">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+<div class="rowin" style="display: flex; gap: 12px; align-items: center; height: 36px; animation-delay: {{r.dl}};"><div style="width: 32px; height: 32px; border-radius: 999px; background: #22355A; color: #9DBBDB; display: grid; place-items: center; font-size: 12px; font-weight: 600;">{{r.ini}}</div><span style="font-weight: 600;">{{r.name}}</span><span style="color: #A3ADBF; font-size: 13px;">{{r.country}}</span><span style="margin-left: auto; font-variant-numeric: tabular-nums;">{{r.v}}</span></div>
+</sc-for>
+</sc-if>
+</div>
+</section>
+
+<section class="demo">
+<div style="display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-start;">
+<div><h2 style="margin: 0; font-size: 18px; line-height: 26px; font-weight: 600;">8. Money in motion</h2><div style="font-size: 13px; color: #8A95A8;">Use for: the moment the budget is allocated</div></div>
+<button class="btn pri" onClick="{{flyGo}}">Allocate budget</button>
+</div>
+<div style="overflow-x: auto;">
+<div style="position: relative; width: 520px; height: 220px; margin: 0 auto;">
+<svg width="520" height="220" viewBox="0 0 520 220" aria-hidden="true" style="position: absolute; inset: 0;">
+<sc-for list="{{flyPaths}}" as="p" hint-placeholder-count="3">
+<path d="{{p.d}}" fill="none" stroke="#26344F" style="stroke-width: 2px; stroke-dasharray: 4 6;"></path>
+</sc-for>
+<rect x="18" y="80" width="22" height="60" rx="5" fill="#3A5F8C"></rect>
+</svg>
+<div style="position: absolute; left: 6px; top: 146px; font-size: 13px; color: #A3ADBF;">Budget 1M</div>
+<sc-for list="{{flyTargets}}" as="t" hint-placeholder-count="3">
+<div style="position: absolute; left: 420px; top: {{t.top}}px; display: flex; align-items: center; gap: 10px;">
+<div style="width: 14px; height: 14px; border-radius: 4px; background: {{t.c}};"></div>
+<div style="display: flex; flex-direction: column; line-height: 18px;"><span style="font-size: 13px; color: #A3ADBF;">{{t.label}}</span><span style="font-weight: 600; opacity: {{t.op}}; transition: opacity .5s;">{{t.v}}</span></div>
+</div>
+</sc-for>
+<sc-for list="{{dots}}" as="d" hint-placeholder-count="0">
+<div class="{{d.cls}}" style="position: absolute; left: 0; top: 0; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 999px; background: {{d.c}}; offset-path: path('{{d.path}}'); offset-rotate: 0deg; animation-delay: {{d.dl}};"></div>
+</sc-for>
+</div>
+</div>
+<div style="font-size: 13px; color: #8A95A8;">Dots travel along curved paths from the budget to each offer type, then each total appears.</div>
+</section>
+
+<section class="demo">
+<div><h2 style="margin: 0; font-size: 18px; line-height: 26px; font-weight: 600;">9. Search panel</h2><div style="font-size: 13px; color: #8A95A8;">Use for: jumping to any customer from any page</div></div>
+<div style="position: relative; min-height: 300px; border-radius: 12px; background: #0F1726; border: 1px solid #26344F; padding: 18px; overflow: hidden;">
+<button class="btn" onClick="{{palOpen}}" style="width: 100%; text-align: left; display: flex; justify-content: space-between; color: #A3ADBF;"><span>Search customers</span><span style="font-size: 12px; border: 1px solid #34446A; border-radius: 6px; padding: 0 6px;">Ctrl K</span></button>
+<div style="margin-top: 14px; color: #A3ADBF; font-size: 14px;">{{palLast}}</div>
+<div onClick="{{palClose}}" style="position: absolute; inset: 0; background: rgba(15,23,38,.7); opacity: {{palBg}}; pointer-events: {{palPe}}; transition: opacity .25s;"></div>
+<div style="position: absolute; left: 18px; right: 18px; top: 18px; background: #152036; border: 1px solid #34446A; border-radius: 12px; box-shadow: 0 24px 48px -16px rgba(0,0,0,.6); opacity: {{palBg}}; pointer-events: {{palPe}}; transform: translateY({{palTy}}) scale({{palSc}}); transform-origin: top center; transition: opacity .25s, transform .35s cubic-bezier(.22,1,.36,1);">
+<label for="palq" style="position: absolute; left: -9999px;">Search by name or ID</label>
+<input id="palq" type="search" value="{{palQ}}" onChange="{{palType}}" onKeyDown="{{palKey}}" placeholder="Type a name or customer ID" style="font: inherit; width: 100%; box-sizing: border-box; padding: 14px 16px; min-height: 48px; border: 0; border-bottom: 1px solid #26344F; background: transparent; color: #E6E9EF; border-radius: 12px 12px 0 0;">
+<div style="padding: 6px; max-height: 200px; overflow-y: auto;">
+<sc-for list="{{palList}}" as="p" hint-placeholder-count="5">
+<button class="item" onClick="{{p.pick}}"><span><span>{{p.a}}</span><mark style="background: #22355A; color: #9DBBDB; border-radius: 3px;">{{p.b}}</mark><span>{{p.c}}</span></span><span style="font-size: 12px; color: {{p.col}};">{{p.band}}</span></button>
+</sc-for>
+<sc-if value="{{palEmpty}}" hint-placeholder-val="{{ false }}"><div style="padding: 10px 12px; color: #A3ADBF;">No customer matches.</div></sc-if>
+</div>
+</div>
+</div>
+<div style="font-size: 13px; color: #8A95A8;">The panel drops in with a slight scale, filters as you type, highlights the match, and closes with Escape or a click outside.</div>
+</section>
+
+<section class="demo">
+<div style="display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-start;">
+<div><h2 style="margin: 0; font-size: 18px; line-height: 26px; font-weight: 600;">10. Drawn chart with live crosshair</h2><div style="font-size: 13px; color: #8A95A8;">Use for: the value at risk forecast. Move across the chart.</div></div>
+<button class="btn" onClick="{{chartReplay}}">Replay</button>
+</div>
+<div style="position: relative;">
+<svg viewBox="0 0 560 240" role="img" aria-label="Value at risk by month, sample data" onMouseMove="{{chartMove}}" onMouseLeave="{{chartLeave}}" style="width: 100%; height: auto; display: block; cursor: crosshair;">
+<defs><linearGradient id="mo-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color: #D0848E; stop-opacity: 0.35;"></stop><stop offset="1" style="stop-color: #D0848E; stop-opacity: 0;"></stop></linearGradient></defs>
+<line x1="30" y1="210" x2="550" y2="210" stroke="#26344F"></line>
+<line x1="30" y1="110" x2="550" y2="110" stroke="#1B2842"></line>
+<path d="{{area}}" fill="url(#mo-area)" style="opacity: {{areaOp}}; transition: opacity 1s ease .8s;"></path>
+<path d="{{line}}" fill="none" stroke="#D0848E" style="stroke-width: 2.5px; stroke-linejoin: round; stroke-dasharray: 900; stroke-dashoffset: {{dash}}; transition: stroke-dashoffset {{dashT}};"></path>
+<g style="opacity: {{hOp}}; transition: opacity .2s;">
+<line x1="{{hx}}" y1="20" x2="{{hx}}" y2="210" stroke="#9DBBDB" style="stroke-dasharray: 3 4; transition: all .15s;"></line>
+<circle cx="{{hx}}" cy="{{hy}}" r="6" fill="#152036" stroke="#D0848E" style="stroke-width: 3px; transition: all .15s;"></circle>
+</g>
+<sc-for list="{{months}}" as="m" hint-placeholder-count="12">
+<text x="{{m.x}}" y="230" fill="#8A95A8" style="font-size: 11px; text-anchor: middle;">{{m.t}}</text>
+</sc-for>
+</svg>
+<div style="position: absolute; top: 0; left: {{tipL}}; transform: translateX(-50%); background: #1B2842; border: 1px solid #34446A; border-radius: 8px; padding: 6px 10px; font-size: 13px; white-space: nowrap; opacity: {{hOp}}; transition: left .15s, opacity .2s; pointer-events: none;"><strong>{{tipV}}</strong> <span style="color: #A3ADBF;">{{tipM}}</span></div>
+</div>
+<div style="font-size: 13px; color: #8A95A8;">The line draws itself, the area fades in after it, and the crosshair snaps to the nearest month. Sample data.</div>
+</section>
+
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2500}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { odo: 0, words: false, sx: 0, sy: 0, sh: false, rx: 0, ry: 0, open: 0, strat: 0, g: 0, loading: true, fly: 0, arrived: false, pal: false, palQ: '', palLast: 'Nothing opened yet.', drawn: false, hi: -1 };
+  }
+  componentDidMount() {
+    this.t = [];
+    this.t.push(setTimeout(() => this.setState({ odo: 208100843, words: true, drawn: true }), 200));
+    this.t.push(setTimeout(() => this.setState({ loading: false }), 1600));
+  }
+  componentWillUnmount() { (this.t || []).forEach(clearTimeout); }
+  later(fn, ms) { this.t.push(setTimeout(fn, ms)); }
+  renderVals() {
+    const S = this.state;
+    const full = (v) => Math.round(v).toLocaleString('en-US');
+    const digits = String(Math.round(S.odo)).padStart(9, '0');
+    const odo = [];
+    for (let i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 === 0) odo.push({ isD: false, isC: true });
+      odo.push({ isD: true, isC: false, ty: '-' + (Number(digits[i]) * 10) + '%', dl: (i * 70) + 'ms' });
+    }
+    const W = '1,232 customers could leave this quarter, taking 52M of value with them.'.split(' ');
+    const words = W.map((t, i) => ({ t, c: (t === '1,232' || t === '52M') ? '#D0848E' : '#E6E9EF', ty: S.words ? '0%' : '110%', op: S.words ? 1 : 0, dl: S.words ? (i * 55) + 'ms' : '0ms' }));
+    const people = [
+      ['Mr Castiglione', 'Spain, worth 199K a year', 'High risk', '#D0848E', '#4A2530', 'Holds 4 bank products and is not an active member. Every customer with 4 products in the data left.', '99%'],
+      ['Ms Chung', 'Germany, worth 198K a year', 'High risk', '#D0848E', '#4A2530', 'Age 56, 3 products, inactive. Germany has twice the churn rate of France and Spain.', '99%'],
+      ['Mr Chidiebele', 'Germany, worth 198K a year', 'Medium risk', '#C9A26B', '#3A2F22', 'Holds 2 products, the most loyal group, but is not active and is based in Germany.', '38%'],
+      ['Ms Robinson', 'Spain, worth 196K a year', 'Low risk', '#8DB59E', '#1F3329', 'With the bank for 9 years and only 41. Low risk, keep in the normal programme.', '22%']
+    ];
+    const acc = people.map((p, i) => { const o = S.open === i; return {
+      name: p[0], sub: p[1], band: p[2], c: p[3], soft: p[4], detail: p[5], exp: o ? 'true' : 'false',
+      rows: o ? '1fr' : '0fr', op: o ? 1 : 0, ty: o ? '0px' : '-8px', rot: o ? 180 : 0, w: o ? p[6] : '0%',
+      toggle: () => this.setState({ open: S.open === i ? -1 : i }) }; });
+    const SL = [['Best return', 'Most value kept per unit spent', '+1.93M'], ['Same for everyone', 'Even split across flagged customers', '+1.19M'], ['Most at-risk first', 'Highest chance of leaving first', '+1.56M']];
+    const strats = SL.map((s, i) => ({ label: s[0], desc: s[1], v: s[2], on: S.strat === i, checked: S.strat === i ? 'true' : 'false', bg: S.strat === i ? '#1B2842' : '#152036', vc: S.strat === i ? '#9DBBDB' : '#E6E9EF', pick: () => this.setState({ strat: i }) }));
+    const GO = [['Do nothing', 0.995], ['Waive account fees', 0.79], ['Better savings rate', 0.64], ['Call from relationship manager', 0.48]];
+    const gp = S.g < 0 ? 0 : GO[S.g][1];
+    const ticks = [];
+    for (let k = 0; k <= 10; k++) { const a = Math.PI - k * Math.PI / 10; ticks.push({ x1: (130 + 92 * Math.cos(a)).toFixed(1), y1: (130 - 92 * Math.sin(a)).toFixed(1), x2: (130 + 82 * Math.cos(a)).toFixed(1), y2: (130 - 82 * Math.sin(a)).toFixed(1) }); }
+    const names = [['Castiglione', 'Mr', 'Spain', '15671591', 'High risk', '#D0848E'], ['Levy', 'Ms', 'Germany', '15616213', 'High risk', '#D0848E'], ['Trentino', 'Mr', 'France', '15600399', 'High risk', '#D0848E'], ['Chung', 'Ms', 'Germany', '15666548', 'High risk', '#D0848E'], ['Kennedy', 'Mr', 'France', '15815316', 'High risk', '#D0848E'], ['Dumetolisa', 'Ms', 'Spain', '15655123', 'High risk', '#D0848E'], ['Chidiebele', 'Mr', 'Germany', '15616550', 'Medium risk', '#C9A26B'], ['Robinson', 'Ms', 'Spain', '15588537', 'Low risk', '#8DB59E']];
+    const vals = ['198,875', '198,715', '197,727', '197,634', '196,371'];
+    const q = S.palQ.trim().toLowerCase();
+    const palList = names.filter(n => !q || n[0].toLowerCase().includes(q) || n[3].includes(q)).map(n => {
+      const label = n[1] + ' ' + n[0];
+      let a = label, b = '', c = '';
+      if (q) { const idx = label.toLowerCase().indexOf(q); if (idx >= 0) { a = label.slice(0, idx); b = label.slice(idx, idx + q.length); c = label.slice(idx + q.length); } else { a = label + ' (ID ' + n[3] + ')'; } }
+      return { a, b, c, band: n[4], col: n[5], pick: () => this.setState({ pal: false, palQ: '', palLast: 'Opened ' + label + '.' }) };
+    });
+    const FP = [[50, 'Better savings rate', '#3A5F8C', '+1.08M'], [110, 'Waive account fees', '#6E8FB5', '+0.48M'], [170, 'Relationship manager calls', '#8C4A57', '+0.37M']];
+    const pathFor = (y) => 'M40 110 C 220 110, 240 ' + y + ', 412 ' + y;
+    const dots = S.fly > 0 ? Array.from({ length: 36 }, (_, i) => { const f = FP[i % 3]; return { path: pathFor(f[0]), c: f[2], dl: (Math.floor(i / 3) * 90 + (i % 3) * 30) + 'ms', cls: S.fly % 2 ? 'flyA' : 'flyB' }; }) : [];
+    const M = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const V = [31, 33, 32, 36, 41, 39, 44, 47, 45, 50, 54, 52];
+    const X = (i) => 40 + i * (500 / 11), Y = (v) => 210 - (v - 20) * 4.4;
+    let line = '', area = '';
+    V.forEach((v, i) => { line += (i ? ' L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1); });
+    area = line + ' L' + X(11).toFixed(1) + ' 210 L' + X(0).toFixed(1) + ' 210 Z';
+    const hi = S.hi;
+    return {
+      odo, odoNew: () => this.setState({ odo: 150000000 + Math.floor(Math.random() * 110000000) }),
+      words, wordsReplay: () => { this.setState({ words: false }); this.later(() => this.setState({ words: true }), 120); },
+      sx: S.sx.toFixed(0), sy: S.sy.toFixed(0), sa: S.sh ? 0.18 : 0, rx: S.rx.toFixed(2), ry: S.ry.toFixed(2), st: S.sh ? '.1s' : '.6s cubic-bezier(.22,1,.36,1)',
+      spotMove: (e) => { const r = e.currentTarget.getBoundingClientRect(); const x = e.clientX - r.left, y = e.clientY - r.top; this.setState({ sx: x / r.width * e.currentTarget.offsetWidth, sy: y / r.height * e.currentTarget.offsetHeight, sh: true, rx: (0.5 - y / r.height) * 8, ry: (x / r.width - 0.5) * 8 }); },
+      spotLeave: () => this.setState({ sh: false, rx: 0, ry: 0 }),
+      acc, strats,
+      gLen: (345.6 * gp).toFixed(1), gRot: (-90 + 180 * gp).toFixed(1), gC: gp >= 0.5 ? '#D0848E' : '#C9A26B', gPct: gp >= 0.99 ? '99%+' : Math.round(gp * 100) + '%', ticks,
+      gOffers: GO.map((o, i) => ({ label: o[0], cls: S.g === i ? 'btn on' : 'btn', checked: S.g === i ? 'true' : 'false', pick: () => this.setState({ g: i }) })),
+      loading: S.loading, loaded: !S.loading,
+      skelRows: [{ w: '45%' }, { w: '38%' }, { w: '52%' }, { w: '41%' }, { w: '47%' }],
+      rows: names.slice(0, 5).map((n, i) => ({ ini: n[0].slice(0, 2).toUpperCase(), name: n[1] + ' ' + n[0], country: n[2], v: vals[i], dl: (i * 80) + 'ms' })),
+      skelReplay: () => { this.setState({ loading: true }); this.later(() => this.setState({ loading: false }), 1400); },
+      flyPaths: FP.map(f => ({ d: pathFor(f[0]) })),
+      flyTargets: FP.map(f => ({ top: f[0] - 18, label: f[1], c: f[2], v: f[3], op: S.arrived ? 1 : 0 })),
+      dots, flyGo: () => { this.setState({ fly: S.fly + 1, arrived: false }); this.later(() => this.setState({ arrived: true }), 1900); },
+      palBg: S.pal ? 1 : 0, palPe: S.pal ? 'auto' : 'none', palTy: S.pal ? '0px' : '-10px', palSc: S.pal ? 1 : 0.97,
+      palQ: S.palQ, palLast: S.palLast, palList, palEmpty: palList.length === 0,
+      palOpen: () => { this.setState({ pal: true }); this.later(() => { const el = document.getElementById('palq'); if (el) el.focus(); }, 60); },
+      palClose: () => this.setState({ pal: false }),
+      palType: (e) => this.setState({ palQ: e.target.value }),
+      palKey: (e) => { if (e.key === 'Escape') this.setState({ pal: false }); },
+      line, area, dash: S.drawn ? 0 : 900, dashT: S.drawn ? '2s cubic-bezier(.65,0,.35,1)' : '0s', areaOp: S.drawn ? 1 : 0,
+      months: M.map((t, i) => ({ t, x: X(i).toFixed(1) })),
+      chartReplay: () => { this.setState({ drawn: false }); this.later(() => this.setState({ drawn: true }), 60); },
+      chartMove: (e) => { const r = e.currentTarget.getBoundingClientRect(); const vx = (e.clientX - r.left) / r.width * 560; const i = Math.max(0, Math.min(11, Math.round((vx - 40) / (500 / 11)))); if (i !== S.hi) this.setState({ hi: i }); },
+      chartLeave: () => this.setState({ hi: -1 }),
+      hOp: hi >= 0 ? 1 : 0, hx: hi >= 0 ? X(hi).toFixed(1) : X(0).toFixed(1), hy: hi >= 0 ? Y(V[hi]).toFixed(1) : Y(V[0]).toFixed(1),
+      tipL: hi >= 0 ? (X(hi) / 560 * 100).toFixed(1) + '%' : '0%', tipV: hi >= 0 ? V[hi] + 'M' : '', tipM: hi >= 0 ? M[hi] : ''
+    };
+  }
+}
+</script>
+</body>
+</html>

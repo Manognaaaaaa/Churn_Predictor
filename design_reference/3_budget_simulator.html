@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Budget simulator</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Serif:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1726}
+a{color:#9DBBDB}a:hover{color:#C5D7EA}
+.tab{display:inline-block;padding:8px 16px;border-radius:8px;font-size:14px;line-height:20px;color:#A3ADBF;text-decoration:none;transition:color .2s,background .2s}
+.tab:hover{color:#E6E9EF;background:#1B2842}
+.tab.on{background:#3A5F8C;color:#F1F3F7}
+.chip{font:inherit;font-size:14px;font-weight:600;padding:8px 16px;min-height:44px;border-radius:8px;border:1px solid #34446A;background:#152036;color:#E6E9EF;cursor:pointer;transition:all .2s}
+.chip:hover{border-color:#3A5F8C}
+.chip.on{background:#3A5F8C;border-color:#3A5F8C;color:#F1F3F7}
+.card{font:inherit;color:#E6E9EF;text-align:left;cursor:pointer;padding:18px 20px;min-height:44px;border-radius:12px;border:1px solid #26344F;background:#152036;display:flex;flex-direction:column;gap:8px;transition:border-color .3s,box-shadow .3s,transform .3s}
+.card:hover{border-color:#4A5D80}
+.card.on{border-color:#3A5F8C;box-shadow:0 0 0 1px #3A5F8C,0 8px 24px -12px rgba(157,187,219,.4);transform:translateY(-2px)}
+.row{font:inherit;color:#E6E9EF;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid #26344F;padding:14px 8px;min-height:44px;cursor:pointer;display:grid;grid-template-columns:minmax(0,2.2fr) repeat(4,minmax(0,1fr));gap:12px;align-items:center;transition:background .2s}
+.row:hover{background:#1B2842}
+.tab:focus-visible,.chip:focus-visible,.card:focus-visible,.row:focus-visible,input:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(157,187,219,.4)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:44px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:999px;background:linear-gradient(90deg,#3A5F8C var(--pct),#26344F var(--pct))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;margin-top:-8px;border-radius:999px;background:#152036;border:3px solid #3A5F8C;box-shadow:0 2px 6px rgba(16,24,40,.2)}
+input[type=range]::-moz-range-track{height:8px;border-radius:999px;background:#26344F}
+input[type=range]::-moz-range-progress{height:8px;border-radius:999px;background:#3A5F8C}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:999px;background:#152036;border:3px solid #3A5F8C}
+.flow{stroke-dasharray:2 22;stroke-linecap:round;animation:flow 3s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-240}}
+.rib{transition:opacity .35s ease}
+.gbar{transition:width .8s cubic-bezier(.22,1,.36,1)}
+.fade{animation:fade .7s cubic-bezier(.22,1,.36,1) both}
+@keyframes fade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.flow,.fade{animation:none}.gbar,.rib{transition:none}}
+</style>
+</helmet>
+<div style="min-height: 1600px; box-sizing: border-box; background: #0F1726; color: #E6E9EF; font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 22px;">
+<header style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; padding: 16px 32px; background: #152036; border-bottom: 1px solid #26344F;">
+<div style="font-family: 'IBM Plex Serif', Georgia, serif; font-weight: 600; font-size: 20px; line-height: 28px;">Churn &amp; Revenue Risk</div>
+<nav aria-label="Concepts" style="display: flex; flex-wrap: wrap; gap: 4px;">
+<a class="tab" href="Main.dc.html">Customer galaxy</a>
+<a class="tab" href="Flow.dc.html">Money flow</a>
+<a class="tab on" href="Budget.dc.html" aria-current="page">Budget simulator</a>
+<a class="tab" href="Customer.dc.html">Customer profile</a>
+</nav>
+</header>
+<main style="max-width: 1240px; margin: 0 auto; padding: 32px; display: flex; flex-direction: column; gap: 24px;">
+
+<section class="fade" style="display: flex; flex-wrap: wrap; gap: 24px; align-items: stretch;">
+<div style="flex: 999 1 520px; min-width: 0; background: #152036; border: 1px solid #26344F; border-radius: 14px; padding: 28px; display: flex; flex-direction: column; gap: 12px;">
+<label for="budget" style="font-weight: 600;">Retention budget</label>
+<div style="font-family: 'IBM Plex Serif', Georgia, serif; font-weight: 600; font-size: 64px; line-height: 70px; font-variant-numeric: tabular-nums;">{{budgetText}}</div>
+<input id="budget" type="range" min="100000" max="5000000" step="50000" value="{{budget}}" onChange="{{onBudget}}" style="--pct: {{pct}};">
+<div style="display: flex; flex-wrap: wrap; gap: 8px;">
+<sc-for list="{{quick}}" as="q" hint-placeholder-count="5">
+<button class="{{q.cls}}" onClick="{{q.pick}}">{{q.label}}</button>
+</sc-for>
+</div>
+<p style="margin: 6px 0 0; font-size: 17px; line-height: 27px; max-width: 600px;">Spending <strong>{{spentShort}}</strong> sends offers to <strong>{{custText}} customers</strong> and is expected to keep <strong style="color: #9DBBDB;">{{keptShort}}</strong> of yearly value that would otherwise leave.</p>
+</div>
+<div style="flex: 1 1 360px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+<div style="grid-column: 1 / -1; background: linear-gradient(150deg, #4A2230, #2A2440); border: 1px solid #5A3040; color: #F1F3F7; border-radius: 14px; padding: 22px;">
+<div style="opacity: .8;">Value kept</div>
+<div style="font-family: 'IBM Plex Serif', serif; font-weight: 600; font-size: 52px; line-height: 58px; font-variant-numeric: tabular-nums;">+{{keptText}}</div>
+<div style="opacity: .8; font-size: 14px;">Yearly value the offers stop from leaving.</div>
+</div>
+<div style="background: #152036; border: 1px solid #26344F; border-radius: 14px; padding: 16px;">
+<div style="color: #A3ADBF; font-size: 13px;">Net gain after costs</div>
+<div style="font-family: 'IBM Plex Serif', serif; font-size: 30px; line-height: 36px; font-weight: 600; font-variant-numeric: tabular-nums;">+{{netShort}}</div>
+</div>
+<div style="background: #152036; border: 1px solid #26344F; border-radius: 14px; padding: 16px;">
+<div style="color: #A3ADBF; font-size: 13px;">Back for every 1 spent</div>
+<div style="font-family: 'IBM Plex Serif', serif; font-size: 30px; line-height: 36px; font-weight: 600; font-variant-numeric: tabular-nums;">{{ratio}}</div>
+</div>
+<div style="grid-column: 1 / -1; background: #152036; border: 1px solid #26344F; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+<div style="display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 14px;"><span style="color: #A3ADBF;">Value at risk, before and after</span><span style="font-variant-numeric: tabular-nums; font-weight: 600;">208.1M to {{afterShort}}</span></div>
+<div style="height: 10px; border-radius: 999px; background: #4A2530; overflow: hidden;"><div style="height: 100%; width: {{protPct}}; min-width: 4px; background: #3A5F8C; border-radius: 999px; transition: width .6s;"></div></div>
+<div style="font-size: 13px; color: #A3ADBF;">This budget protects <strong style="color: #E6E9EF;">{{protText}}</strong> of all value at risk.</div>
+</div>
+</div>
+</section>
+
+<section class="fade" style="background: #152036; border: 1px solid #26344F; border-radius: 14px; padding: 28px; animation-delay: 120ms;">
+<div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px; margin-bottom: 8px;">
+<div>
+<h2 style="margin: 0; font-family: 'IBM Plex Serif', serif; font-size: 24px; line-height: 32px; font-weight: 600;">Where the money goes</h2>
+<p style="margin: 4px 0 0; color: #A3ADBF; max-width: 720px;">Left: the budget. Middle: the offers it pays for. Right: the yearly value each offer keeps. A stream gets wider when an offer keeps more than it costs.</p>
+</div>
+<div style="font-size: 13px; color: #8A95A8;">Hover an offer to follow its money</div>
+</div>
+<svg viewBox="0 0 1100 470" role="img" aria-label="Budget flowing into three offer types and the value each keeps" style="width: 100%; height: auto; display: block;">
+<defs><clipPath id="bud-reveal"><rect x="0" y="0" height="470" style="width: {{clipW}}px; transition: width 1800ms cubic-bezier(.65,0,.35,1);"></rect></clipPath></defs>
+<g style="clip-path: url(#bud-reveal);">
+<sc-for list="{{ribs}}" as="r" hint-placeholder-count="0">
+<path class="rib" d="{{r.d}}" fill="{{r.c}}" onMouseEnter="{{r.enter}}" onMouseLeave="{{leave}}" style="opacity: {{r.op}}; cursor: pointer;"></path>
+</sc-for>
+<sc-for list="{{lines}}" as="l" hint-placeholder-count="0">
+<path class="flow" d="{{l.d}}" fill="none" stroke="#E6E9EF" style="stroke-width: 2px; opacity: {{l.op}}; pointer-events: none;"></path>
+</sc-for>
+</g>
+<rect x="40" y="{{bY}}" width="20" height="{{bH}}" rx="4" fill="#E6E9EF"></rect>
+<text x="40" y="{{bLy}}" fill="#A3ADBF" style="font-size: 14px;">Budget</text>
+<text x="40" y="{{bLy2}}" fill="#E6E9EF" style="font-family: 'IBM Plex Serif', serif; font-size: 26px; font-weight: 600;">{{spentShort}}</text>
+<sc-for list="{{mids}}" as="m" hint-placeholder-count="0">
+<rect x="470" y="{{m.y}}" width="16" height="{{m.h}}" rx="3" fill="{{m.c}}" onMouseEnter="{{m.enter}}" onMouseLeave="{{leave}}" style="cursor: pointer;"></rect>
+<text x="496" y="{{m.ty}}" fill="#E6E9EF" style="font-size: 15px; font-weight: 600; paint-order: stroke; stroke: #152036; stroke-width: 5px; pointer-events: none;">{{m.name}}</text>
+<text x="496" y="{{m.ty2}}" fill="#A3ADBF" style="font-size: 13px; paint-order: stroke; stroke: #152036; stroke-width: 5px; pointer-events: none;">{{m.sub}}</text>
+</sc-for>
+<sc-for list="{{rights}}" as="k" hint-placeholder-count="0">
+<rect x="1040" y="{{k.y}}" width="20" height="{{k.h}}" fill="{{k.c}}"></rect>
+<text x="1030" y="{{k.ty}}" fill="#E6E9EF" style="font-size: 14px; font-weight: 600; text-anchor: end; paint-order: stroke; stroke: #152036; stroke-width: 5px; pointer-events: none;">{{k.v}}</text>
+</sc-for>
+<text x="1060" y="{{kLy}}" fill="#A3ADBF" style="font-size: 14px; text-anchor: end;">Value kept</text>
+<text x="1060" y="{{kLy2}}" fill="#9DBBDB" style="font-family: 'IBM Plex Serif', serif; font-size: 26px; font-weight: 600; text-anchor: end;">{{keptShort}}</text>
+</svg>
+<div style="margin-top: 16px; overflow-x: auto;">
+<div style="min-width: 640px;">
+<div style="display: grid; grid-template-columns: minmax(0,2.2fr) repeat(4,minmax(0,1fr)); gap: 12px; padding: 0 8px 10px; font-size: 13px; color: #A3ADBF; border-bottom: 1px solid #26344F;">
+<span>Offer</span><span style="text-align: right;">Customers</span><span style="text-align: right;">Money spent</span><span style="text-align: right;">Value kept</span><span style="text-align: right;">Back per 1 spent</span>
+</div>
+<sc-for list="{{rows}}" as="o" hint-placeholder-count="3">
+<button class="row" onMouseEnter="{{o.enter}}" onMouseLeave="{{leave}}" onFocus="{{o.enter}}" onBlur="{{leave}}" style="background: {{o.bg}};">
+<span style="display: flex; align-items: center; gap: 12px;"><span style="width: 12px; height: 12px; border-radius: 3px; background: {{o.c}}; flex: none;"></span><span style="display: flex; flex-direction: column;"><strong>{{o.name}}</strong><span style="font-size: 13px; color: #A3ADBF;">{{o.desc}}</span></span></span>
+<span style="text-align: right; font-variant-numeric: tabular-nums;">{{o.cust}}</span>
+<span style="text-align: right; font-variant-numeric: tabular-nums;">{{o.spend}}</span>
+<span style="text-align: right; font-variant-numeric: tabular-nums; color: #9DBBDB; font-weight: 600;">+{{o.kept}}</span>
+<span style="text-align: right; font-variant-numeric: tabular-nums;">{{o.ret}}</span>
+</button>
+</sc-for>
+</div>
+</div>
+</section>
+
+<section style="display: flex; flex-wrap: wrap; gap: 24px;">
+<div class="fade" style="flex: 1 1 460px; min-width: 0; background: #152036; border: 1px solid #26344F; border-radius: 14px; padding: 28px; display: flex; flex-direction: column; gap: 18px; animation-delay: 220ms;">
+<div>
+<h2 style="margin: 0; font-family: 'IBM Plex Serif', serif; font-size: 22px; line-height: 30px; font-weight: 600;">Which customers get the money</h2>
+<p style="margin: 4px 0 0; color: #A3ADBF;">How the budget splits across customer groups with this strategy.</p>
+</div>
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+<div style="display: flex; flex-direction: column; gap: 6px;">
+<div style="display: flex; justify-content: space-between; gap: 12px; align-items: baseline;"><span style="font-weight: 600;">{{g.name}}</span><span style="font-family: 'IBM Plex Serif', serif; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums;">{{g.spend}}</span></div>
+<div style="height: 12px; border-radius: 999px; background: #1F2B45; overflow: hidden;"><div class="gbar" style="height: 100%; border-radius: 999px; width: {{g.w}}; background: #3A5F8C;"></div></div>
+<div style="font-size: 13px; color: #A3ADBF;">{{g.note}}</div>
+</div>
+</sc-for>
+</div>
+<div class="fade" style="flex: 1 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 14px; animation-delay: 300ms;">
+<div>
+<h2 style="margin: 0; font-family: 'IBM Plex Serif', serif; font-size: 22px; line-height: 30px; font-weight: 600;">How to spend it</h2>
+<p style="margin: 4px 0 0; color: #A3ADBF;">Same budget, three ways to split it. The numbers follow the slider.</p>
+</div>
+<div role="radiogroup" aria-label="Strategy" style="display: flex; flex-direction: column; gap: 10px;">
+<sc-for list="{{strats}}" as="s" hint-placeholder-count="3">
+<button class="{{s.cls}}" role="radio" aria-checked="{{s.checked}}" onClick="{{s.pick}}">
+<span style="display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap;"><span style="font-size: 16px; font-weight: 600;">{{s.label}}</span><span style="font-family: 'IBM Plex Serif', serif; font-size: 24px; font-weight: 600; color: {{s.vc}}; font-variant-numeric: tabular-nums;">+{{s.v}}</span></span>
+<span style="color: #A3ADBF; font-size: 14px; line-height: 20px;">{{s.desc}}</span>
+<span style="height: 6px; border-radius: 999px; background: #1F2B45; overflow: hidden; display: block;"><span class="gbar" style="display: block; height: 100%; width: {{s.w}}; border-radius: 999px; background: {{s.bc}};"></span></span>
+</button>
+</sc-for>
+</div>
+</div>
+</section>
+<div style="font-size: 13px; line-height: 19px; color: #8A95A8; max-width: 900px;">Real numbers: 208,100,843 of value at risk, and 1,000,000 spent keeps 1,925,637 with the recommended strategy. "Value" is each customer's estimated yearly salary, which the pipeline uses as revenue. The curve between budgets, the offer mix and the group split are sample values; wire them to the allocation API.</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1600}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { budget: 1000000, strat: 0, b: 150000, m: 1, shown: false, hot: -1 };
+  }
+  componentDidMount() {
+    this._a = setTimeout(() => this.setState({ shown: true }), 150);
+    this.animateTo(1000000, 1, 1600);
+  }
+  componentWillUnmount() { clearTimeout(this._a); cancelAnimationFrame(this._raf); }
+  animateTo(bT, mT, ms) {
+    cancelAnimationFrame(this._raf);
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { this.setState({ b: bT, m: mT }); return; }
+    const b0 = this.state.b, m0 = this.state.m;
+    let t0 = null;
+    const step = (ts) => {
+      if (t0 == null) t0 = ts;
+      const t = Math.min(1, (ts - t0) / ms), e = 1 - Math.pow(1 - t, 3);
+      this.setState({ b: b0 + (bT - b0) * e, m: m0 + (mT - m0) * e });
+      if (t < 1) this._raf = requestAnimationFrame(step);
+    };
+    this._raf = requestAnimationFrame(step);
+  }
+  setBudget(v) { this.setState({ budget: v }); this.animateTo(v, [1, 0.62, 0.81][this.state.strat], 700); }
+  setStrat(s) { this.setState({ strat: s }); this.animateTo(this.state.budget, [1, 0.62, 0.81][s], 700); }
+  renderVals() {
+    const { budget, strat, b, m, shown, hot } = this.state;
+    const A = 1925637 / (1 - Math.exp(-1 / 3));
+    const keptAt = (x, mm) => A * (1 - Math.exp(-x / 3000000)) * mm;
+    const full = (v) => Math.round(v).toLocaleString('en-US');
+    const short = (v) => v >= 1e6 ? (v / 1e6).toFixed(2) + 'M' : Math.round(v / 1000) + 'K';
+    const kept = keptAt(b, m), spent = b * 0.99985, ratio = kept / b;
+    const O = [
+      { name: 'Better savings rate', desc: 'Higher interest on their balance for 6 months', share: 0.52, ret: 1.12, per: 500, c: '#3A5F8C' },
+      { name: 'Waive account fees', desc: 'No account fees for a year', share: 0.30, ret: 0.92, per: 300, c: '#5B87B0' },
+      { name: 'Call from relationship manager', desc: 'Personal review of accounts and products', share: 0.18, ret: 0.85, per: 900, c: '#8C4A57' }
+    ];
+    const wsum = O.reduce((s, o) => s + o.share * o.ret, 0);
+    O.forEach(o => { o.spend = b * o.share; o.kept = kept * o.share * o.ret / wsum; o.cust = Math.round(o.spend / o.per); });
+    const cust = O.reduce((s, o) => s + o.cust, 0);
+    const H = 470, HB = 180, bY = (H - HB) / 2;
+    const gap = 40; let my = (H - (HB + gap * 2)) / 2;
+    const HK = Math.min(420, HB * ratio), kY = (H - HK) / 2;
+    const f1 = (n) => n.toFixed(1);
+    const rib = (x0, a0, b0, x1, a1, b1) => { const xm = (x0 + x1) / 2; return 'M' + x0 + ' ' + f1(a0) + ' C' + xm + ' ' + f1(a0) + ' ' + xm + ' ' + f1(a1) + ' ' + x1 + ' ' + f1(a1) + ' L' + x1 + ' ' + f1(b1) + ' C' + xm + ' ' + f1(b1) + ' ' + xm + ' ' + f1(b0) + ' ' + x0 + ' ' + f1(b0) + ' Z'; };
+    const mid = (x0, y0, x1, y1) => { const xm = (x0 + x1) / 2; return 'M' + x0 + ' ' + f1(y0) + ' C' + xm + ' ' + f1(y0) + ' ' + xm + ' ' + f1(y1) + ' ' + x1 + ' ' + f1(y1); };
+    const enter = (i) => () => this.setState({ hot: i });
+    const ribs = [], lines = [], mids = [], rights = [];
+    let by = bY, ky = kY;
+    O.forEach((o, i) => {
+      const h = HB * o.share, k = HK * o.kept / kept;
+      const op = hot < 0 ? 0.28 : hot === i ? 0.6 : 0.06;
+      ribs.push({ d: rib(60, by, by + h, 470, my, my + h), c: o.c, op: op * 0.75, enter: enter(i) });
+      ribs.push({ d: rib(486, my, my + h, 1040, ky, ky + k), c: o.c, op, enter: enter(i) });
+      lines.push({ d: mid(60, by + h / 2, 470, my + h / 2), op: hot < 0 || hot === i ? 0.8 : 0 });
+      lines.push({ d: mid(486, my + h / 2, 1040, ky + k / 2), op: hot < 0 || hot === i ? 0.8 : 0 });
+      mids.push({ y: f1(my), h: f1(Math.max(2, h)), ty: f1(my + h / 2 - 3), ty2: f1(my + h / 2 + 15), c: o.c, name: o.name, sub: short(o.spend) + ' to ' + full(o.cust) + ' customers', enter: enter(i) });
+      rights.push({ y: f1(ky), h: f1(Math.max(2, k)), ty: f1(ky + k / 2 + 5), c: o.c, v: '+' + short(o.kept) });
+      by += h; my += h + gap; ky += k;
+    });
+    const GS = [
+      [['Customers in Germany', 0.34], ['Customers in France', 0.26], ['Customers with no balance', 0.22], ['Customers in Spain', 0.18]],
+      [['Customers in France', 0.38], ['Customers in Germany', 0.24], ['Customers in Spain', 0.22], ['Customers with no balance', 0.16]],
+      [['Customers in Germany', 0.42], ['Customers with no balance', 0.22], ['Customers in Spain', 0.20], ['Customers in France', 0.16]]
+    ][strat];
+    const gmax = GS[0][1];
+    const names = ['Best return (recommended)', 'Same amount for everyone', 'Most at-risk first'];
+    const descs = [
+      'Puts each unit of money where it keeps the most value, with a cap per customer.',
+      'Splits the budget evenly across flagged customers. Simple, but spends on low-value accounts.',
+      'Starts with the customers most likely to leave, whatever they are worth.'
+    ];
+    const vals = [1, 0.62, 0.81].map(mm => keptAt(budget, mm));
+    const prot = kept / 208100843;
+    return {
+      budget, pct: ((budget - 100000) / 4900000 * 100).toFixed(1) + '%',
+      budgetText: full(b),
+      onBudget: (e) => this.setBudget(Number(e.target.value)),
+      quick: [250000, 500000, 1000000, 2000000, 5000000].map(v => ({ label: short(v).replace('.00', ''), cls: budget === v ? 'chip on' : 'chip', pick: () => this.setBudget(v) })),
+      spentShort: short(spent), keptShort: short(kept), custText: full(cust),
+      keptText: full(kept), netShort: short(Math.max(0, kept - spent)), ratio: ratio.toFixed(2),
+      afterShort: ((208100843 - kept) / 1e6).toFixed(1) + 'M',
+      protPct: (prot * 100).toFixed(2) + '%', protText: (prot * 100).toFixed(1) + '%',
+      clipW: shown ? 1100 : 0,
+      ribs, lines, mids, rights,
+      bY: f1(bY), bH: HB, bLy: f1(bY - 40), bLy2: f1(bY - 12), kLy: f1(kY - 40), kLy2: f1(kY - 12),
+      rows: O.map((o, i) => ({ name: o.name, desc: o.desc, c: o.c, cust: full(o.cust), spend: full(o.spend), kept: full(o.kept), ret: (o.kept / o.spend).toFixed(2), bg: hot === i ? '#1B2842' : 'transparent', enter: enter(i) })),
+      groups: GS.map(([name, s]) => ({ name, spend: short(b * s), w: (s / gmax * 100).toFixed(1) + '%', note: full(Math.round(b * s / 470)) + ' customers, ' + Math.round(s * 100) + '% of the budget' })),
+      strats: names.map((label, s) => ({
+        label, desc: descs[s], v: short(vals[s]), w: (vals[s] / vals[0] * 100).toFixed(1) + '%',
+        cls: strat === s ? 'card on' : 'card', checked: strat === s ? 'true' : 'false',
+        vc: strat === s ? '#9DBBDB' : '#E6E9EF', bc: strat === s ? '#3A5F8C' : '#4A5D80',
+        pick: () => this.setStrat(s)
+      })),
+      leave: () => this.setState({ hot: -1 })
+    };
+  }
+}
+</script>
+</body>
+</html>

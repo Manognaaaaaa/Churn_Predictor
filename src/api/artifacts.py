@@ -68,8 +68,15 @@ def _risk_summary() -> dict:
     return {}
 
 
+@lru_cache(maxsize=1)
+def _customers() -> pd.DataFrame:
+    """Raw customer columns (Surname, Geography, ...) written by the pipeline."""
+    return pd.read_parquet(artifacts_dir() / "customers.parquet")
+
+
 def reset_cache() -> None:
-    for fn in (_scores, _segments, _group_params, _allocations, _forecast, _forecast_meta, _metrics, _risk_summary):
+    for fn in (_scores, _segments, _group_params, _allocations, _forecast, _forecast_meta, _metrics,
+               _risk_summary, _customers, people):
         fn.cache_clear()
 
 
@@ -78,3 +85,16 @@ def joined() -> pd.DataFrame:
     df = _scores().merge(_segments(), on="customer_id", how="left")
     alloc = _allocations()[["customer_id", "offer", "spend", "expected_revenue_saved", "reason"]]
     return df.merge(alloc, on="customer_id", how="left")
+
+
+@lru_cache(maxsize=1)
+def people() -> pd.DataFrame:
+    """One row per customer: raw fields, out-of-fold score, segment and allocation (sorted by value at risk)."""
+    sc = _scores()
+    df = sc.merge(_customers(), on="customer_id", how="left").merge(_segments(), on="customer_id", how="left")
+    alloc = _allocations()[["customer_id", "offer", "spend", "expected_revenue_saved", "reason"]]
+    df = df.merge(alloc, on="customer_id", how="left")
+    if "customer_value" not in df:
+        df["customer_value"] = df["EstimatedSalary"]
+    df = df.rename(columns={"p_churn_calibrated": "p", "risk_band": "band", "revenue_at_risk": "rar"})
+    return df.sort_values("rar", ascending=False).reset_index(drop=True)

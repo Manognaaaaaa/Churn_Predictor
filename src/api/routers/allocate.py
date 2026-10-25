@@ -1,10 +1,14 @@
 """Budget allocation endpoints. Validate input, call src/churn, return results (no ML here)."""
 from __future__ import annotations
 
+import csv
+import io
 import json
 
 import numpy as np
-from fastapi import APIRouter, HTTPException
+import pandas as pd
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 from api import artifacts
@@ -49,15 +53,27 @@ def _problem(cfg: dict) -> tuple[st.Problem, np.ndarray, np.ndarray]:
     return pr, seg_ids, seg["segment_name"].to_numpy()
 
 
+def _run(budget: float, strategy: str):
+    """Solve and snap one allocation. Returns (problem, seg ids, seg names, spend, offers, saved)."""
+    cfg = load_config()
+    pr, seg_ids, seg_names = _problem(cfg)
+    snapped = st.allocate_snapped(STRATEGY_MAP[strategy], pr, budget, cfg["allocation"])
+    s, offers = snapped["spend"], snapped["offer"]
+    return pr, seg_ids, seg_names, s, offers, sv.expected_saved(s, pr.p, pr.v, pr.a, pr.tau)
+
+
+def _group(keys: np.ndarray, targeted: np.ndarray, s: np.ndarray, saved: np.ndarray) -> list[dict]:
+    df = pd.DataFrame({"k": keys[targeted], "spend": s[targeted], "kept": saved[targeted]})
+    g = df.groupby("k").agg(customers=("spend", "size"), spend=("spend", "sum"), kept=("kept", "sum"))
+    return [{"key": k, "customers": int(r.customers), "spend": round(float(r.spend), 2),
+             "expected_revenue_saved": round(float(r.kept), 2)} for k, r in g.sort_values("spend", ascending=False).iterrows()]
+
+
 @router.post("/allocate")
 def allocate(req: AllocateRequest):
     cfg = load_config()
     scores = artifacts._scores()
-    pr, seg_ids, seg_names = _problem(cfg)
-    name = STRATEGY_MAP[req.strategy]
-    snapped = st.allocate_snapped(name, pr, req.budget, cfg["allocation"])
-    s, offers = snapped["spend"], snapped["offer"]
-    saved = sv.expected_saved(s, pr.p, pr.v, pr.a, pr.tau)
+    pr, seg_ids, seg_names, s, offers, saved = _run(req.budget, req.strategy)
     table = artifacts._group_params()
     cid = scores["customer_id"].to_numpy()
     band = scores["risk_band"].to_numpy()
@@ -74,6 +90,8 @@ def allocate(req: AllocateRequest):
             "value_tier": pr.tiers[i], "offer": offers[i], "spend": round(float(s[i]), 2),
             "expected_revenue_saved": round(float(saved[i]), 2),
             "reason": f"{reason}. {offers[i]} ({s[i]:,.0f}) protects {saved[i]:,.0f} of {rar[i]:,.0f} at risk"})
+    by_offer = [{"offer": g.pop("key"), **g} for g in _group(np.asarray(offers, dtype=object), targeted, s, saved)]
+    by_segment = [{"segment_name": g.pop("key"), **g} for g in _group(np.asarray(seg_names, dtype=object), targeted, s, saved)]
     return {
         "budget": req.budget,
         "spent": round(float(s.sum()), 2),
@@ -81,7 +99,59 @@ def allocate(req: AllocateRequest):
         "strategy": req.strategy,
         "n_targeted": int(len(targeted)),
         "allocations": allocations,
+        "by_offer": by_offer,
+        "by_segment": by_segment,
     }
+
+
+@router.get("/allocate/export")
+def allocate_export(budget: float = Query(gt=0), strategy: str = Query("segment_aware", pattern="^(" + "|".join(STRATEGY_MAP) + ")$")):
+    """Every targeted customer for one budget and strategy, as CSV (the /allocate response is capped)."""
+    pr, seg_ids, seg_names, s, offers, saved = _run(budget, strategy)
+    people = artifacts.people().set_index("customer_id")
+    cid = artifacts._scores()["customer_id"].to_numpy()
+    targeted = np.flatnonzero(s > 0)
+    targeted = targeted[np.argsort(-saved[targeted])]
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["customer_id", "surname", "country", "group", "offer", "cost", "value_kept"])
+    for i in targeted:
+        p = people.loc[cid[i]] if cid[i] in people.index else None
+        w.writerow([cid[i], "" if p is None or pd.isna(p.get("Surname")) else p["Surname"],
+                    "" if p is None or pd.isna(p.get("Geography")) else p["Geography"], seg_names[i], offers[i],
+                    f"{s[i]:.2f}", f"{saved[i]:.2f}"])
+    return Response(buf.getvalue(), media_type="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=retention-offers.csv"})
+
+
+CURVE_BUDGETS = list(range(100_000, 5_000_001, 100_000))
+_curves: dict[str, dict] = {}
+
+
+class CurveRequest(BaseModel):
+    strategy: str = Field("segment_aware", pattern="^(" + "|".join(STRATEGY_MAP) + ")$")
+
+
+@router.post("/allocate/curve")
+def allocate_curve(req: CurveRequest):
+    """Value kept at budgets 100K to 5M (step 100K) from the real solver. Cached in memory and on disk."""
+    stamp = (artifacts.artifacts_dir() / "scores.parquet").stat().st_mtime
+    cached = _curves.get(req.strategy)
+    path = artifacts.artifacts_dir() / f"allocation_curve_{req.strategy}.json"
+    if cached is None and path.exists():
+        disk = json.loads(path.read_text())
+        cached = disk if disk.get("stamp") == stamp else None
+    if cached is None or cached.get("stamp") != stamp:
+        pts = []
+        for b in CURVE_BUDGETS:
+            pr, _, _, s, _, saved = _run(float(b), req.strategy)
+            pts.append({"budget": b, "spent": round(float(s.sum()), 2),
+                        "expected_revenue_saved": round(float(saved.sum()), 2),
+                        "n_targeted": int((s > 0).sum())})
+        cached = {"strategy": req.strategy, "stamp": stamp, "points": pts}
+        path.write_text(json.dumps(cached))
+    _curves[req.strategy] = cached
+    return {"strategy": req.strategy, "points": cached["points"]}
 
 
 @router.get("/allocate/sweep")

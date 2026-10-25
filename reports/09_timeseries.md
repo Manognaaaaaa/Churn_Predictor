@@ -88,11 +88,11 @@ Final fit on the full series: ARIMA(1, 0, 0), forecasting 12 weeks with 95% inte
 
 The two series come from different datasets. ARIMA forecasts portfolio revenue; the churn model estimates the share of that revenue at risk:
 
-- L = sum p_i v_i / sum v_i on the churn **test split** with calibrated probabilities = 0.2057 (1500 customers).
+- L = sum p_i v_i / sum v_i on the churn **test split** with calibrated probabilities = 0.2066 (1500 customers).
 - no_intervention = forecast x (1 - L).
-- L' = L - (expected revenue saved by the Step 8 segment-aware, offer-snapped allocation on the same test customers) / sum v_i; with_allocation = forecast x (1 - L'). Here saved = 82,423 of 151,690,446 total customer value, so L' = 0.2052.
+- L' = L - (expected revenue saved by the Step 8 segment-aware, offer-snapped allocation on the same test customers) / sum v_i; with_allocation = forecast x (1 - L'). Here saved = 82,201 of 151,690,446 total customer value, so L' = 0.2060.
 
-Totals over the horizon: no_intervention 2,071,244 GBP, with_allocation 2,072,661 GBP. The allocation lifts the horizon total by 0.07% (the two lines in the figure are almost on top of each other): the Step 8 budget is small next to the revenue at risk, so the mechanism is visible but the effect is small.
+Totals over the horizon: no_intervention 2,068,977 GBP, with_allocation 2,070,390 GBP. The allocation lifts the horizon total by 0.07% (the two lines in the figure are almost on top of each other): the Step 8 budget is small next to the revenue at risk, so the mechanism is visible but the effect is small.
 
 ![Forecast scenarios](figures/forecast_scenarios.png)
 

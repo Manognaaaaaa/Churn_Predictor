@@ -103,20 +103,20 @@ within 0.5% (`allocation.dual_check_tolerance`).
 
 | strategy              | spend mode   |   spend |   expected saved |   targeted |   saved per spend |   realized saved (labels) |
 |:----------------------|:-------------|--------:|-----------------:|-----------:|------------------:|--------------------------:|
-| segment_aware_kkt     | continuous   | 15000   |         88004.9  |         57 |             5.867 |                  85659    |
-| segment_aware_kkt     | snapped      | 14872.9 |         82422.9  |         83 |             5.542 |                  80962.5  |
-| global_kkt            | continuous   | 15000   |         75330.8  |         49 |             5.022 |                  73606.2  |
-| global_kkt            | snapped      | 14857.9 |         77772.4  |        100 |             5.234 |                  78515    |
-| uniform               | continuous   | 15000   |         17703.6  |       1500 |             1.18  |                  17814.9  |
-| uniform               | snapped      |  7500   |          8874.65 |       1500 |             1.183 |                   8926.38 |
-| top_k_risk            | continuous   | 15000   |         75941.9  |         30 |             5.063 |                  73990    |
-| top_k_risk            | snapped      | 14775.9 |         78113.1  |         83 |             5.287 |                  79282.9  |
-| top_k_revenue_at_risk | continuous   | 15000   |         59801.6  |         30 |             3.987 |                  57840.3  |
-| top_k_revenue_at_risk | snapped      | 14916.7 |         60195.9  |         90 |             4.035 |                  60969.4  |
-| risk_proportional     | continuous   | 15000   |         41647.5  |       1197 |             2.776 |                  40377.3  |
-| risk_proportional     | snapped      | 15000   |         43752.6  |        942 |             2.917 |                  41681.7  |
+| segment_aware_kkt     | continuous   | 15000   |         86158.4  |         61 |             5.744 |                  88159.7  |
+| segment_aware_kkt     | snapped      | 14967.7 |         82201.2  |         79 |             5.492 |                  83946.6  |
+| global_kkt            | continuous   | 15000   |         72239.1  |         66 |             4.816 |                  73489    |
+| global_kkt            | snapped      | 14821.3 |         75837.4  |         89 |             5.117 |                  78524.1  |
+| uniform               | continuous   | 15000   |         17952    |       1500 |             1.197 |                  17814.9  |
+| uniform               | snapped      |  7500   |          8997.53 |       1500 |             1.2   |                   8926.38 |
+| top_k_risk            | continuous   | 15000   |         71986.6  |         30 |             4.799 |                  71924.7  |
+| top_k_risk            | snapped      | 14929.3 |         76561.5  |         84 |             5.128 |                  78571.3  |
+| top_k_revenue_at_risk | continuous   | 15000   |         58514    |         30 |             3.901 |                  61770    |
+| top_k_revenue_at_risk | snapped      | 14816.7 |         60921.6  |         89 |             4.112 |                  65023.6  |
+| risk_proportional     | continuous   | 15000   |         39486.9  |       1332 |             2.632 |                  39779.2  |
+| risk_proportional     | snapped      | 14905   |         39173.4  |       1131 |             2.628 |                  39582.7  |
 
-Segment-aware vs global KKT (continuous): 88,005 vs 75,331 expected saved (+16.82%). Realized difference 12,053, 90% bootstrap CI [-9,739, 34,953] over customers.
+Segment-aware vs global KKT (continuous): 86,158 vs 72,239 expected saved (+19.27%). Realized difference 14,671, 90% bootstrap CI [-8,075, 37,502] over customers.
 
 ![strategy vs budget](figures/strategy_vs_budget.png)
 
@@ -151,37 +151,37 @@ Each of the 24 group parameters of a and of t is varied one at a time (-50, -25,
 - *misspecified*: the world is perturbed but every strategy plans with its nominal assumptions (our current beliefs). This is the informative robustness test.
 - *resolved*: the segment-aware solver is told the perturbed parameters. It is optimal under its own model, so staying first is nearly automatic; only the margin is informative.
 
-Misspecified: segment-aware is first in **204 of 204** scenarios and loses to global KKT in **0**; its margin over global KKT ranges +1.6% to +36.4% (nominal +16.8%). Resolved: first in 204 of 204, margin +10.2% to +45.6%.
+Misspecified: segment-aware is first in **204 of 204** scenarios and loses to global KKT in **0**; its margin over global KKT ranges +3.2% to +41.3% (nominal +19.3%). Resolved: first in 204 of 204, margin +13.0% to +49.1%.
 
 All-together scenarios (segment-aware vs global KKT, relative margin):
 
 | param   |   level |   misspecified_seg_vs_global |   resolved_seg_vs_global | first_misspecified   |
 |:--------|--------:|-----------------------------:|-------------------------:|:---------------------|
-| a       |   -0.5  |                       0.1682 |                   0.1682 | segment_aware_kkt    |
-| t       |   -0.5  |                       0.1173 |                   0.1341 | segment_aware_kkt    |
-| a+t     |   -0.5  |                       0.1173 |                   0.1341 | segment_aware_kkt    |
-| a       |   -0.25 |                       0.1682 |                   0.1682 | segment_aware_kkt    |
-| t       |   -0.25 |                       0.1504 |                   0.1526 | segment_aware_kkt    |
-| a+t     |   -0.25 |                       0.1504 |                   0.1526 | segment_aware_kkt    |
-| a       |    0.25 |                       0.1682 |                   0.1682 | segment_aware_kkt    |
-| t       |    0.25 |                       0.1794 |                   0.1806 | segment_aware_kkt    |
-| a+t     |    0.25 |                       0.1794 |                   0.1806 | segment_aware_kkt    |
-| a       |    0.5  |                       0.1682 |                   0.1682 | segment_aware_kkt    |
-| t       |    0.5  |                       0.1871 |                   0.1906 | segment_aware_kkt    |
-| a+t     |    0.5  |                       0.1871 |                   0.1906 | segment_aware_kkt    |
+| a       |   -0.5  |                       0.1927 |                   0.1927 | segment_aware_kkt    |
+| t       |   -0.5  |                       0.1354 |                   0.1514 | segment_aware_kkt    |
+| a+t     |   -0.5  |                       0.1354 |                   0.1514 | segment_aware_kkt    |
+| a       |   -0.25 |                       0.1927 |                   0.1927 | segment_aware_kkt    |
+| t       |   -0.25 |                       0.1727 |                   0.1751 | segment_aware_kkt    |
+| a+t     |   -0.25 |                       0.1727 |                   0.1751 | segment_aware_kkt    |
+| a       |    0.25 |                       0.1927 |                   0.1927 | segment_aware_kkt    |
+| t       |    0.25 |                       0.2051 |                   0.2065 | segment_aware_kkt    |
+| a+t     |    0.25 |                       0.2051 |                   0.2065 | segment_aware_kkt    |
+| a       |    0.5  |                       0.1927 |                   0.1927 | segment_aware_kkt    |
+| t       |    0.5  |                       0.2136 |                   0.2179 | segment_aware_kkt    |
+| a+t     |    0.5  |                       0.2136 |                   0.2179 | segment_aware_kkt    |
 
 One-at-a-time scenarios aggregated over the 24 groups (misspecified margin, min / mean / max):
 
 | param   |   level |    min |   mean |    max |
 |:--------|--------:|-------:|-------:|-------:|
-| a       |   -0.5  | 0.021  | 0.1686 | 0.2681 |
-| a       |   -0.25 | 0.0964 | 0.1683 | 0.2161 |
-| a       |    0.25 | 0.124  | 0.1683 | 0.2369 |
-| a       |    0.5  | 0.0829 | 0.1685 | 0.3025 |
-| t       |   -0.5  | 0.0159 | 0.1654 | 0.3643 |
-| t       |   -0.25 | 0.1118 | 0.1674 | 0.2434 |
-| t       |    0.25 | 0.1174 | 0.1687 | 0.2055 |
-| t       |    0.5  | 0.0808 | 0.1689 | 0.2319 |
+| a       |   -0.5  | 0.0324 | 0.193  | 0.2752 |
+| a       |   -0.25 | 0.1141 | 0.1927 | 0.2326 |
+| a       |    0.25 | 0.1553 | 0.1927 | 0.2683 |
+| a       |    0.5  | 0.1202 | 0.1929 | 0.3411 |
+| t       |   -0.5  | 0.0611 | 0.1892 | 0.4129 |
+| t       |   -0.25 | 0.1447 | 0.1917 | 0.2762 |
+| t       |    0.25 | 0.1367 | 0.1931 | 0.2238 |
+| t       |    0.5  | 0.0967 | 0.1934 | 0.2457 |
 
 ![sensitivity heatmap](figures/sensitivity_heatmap.png)
 
@@ -189,9 +189,9 @@ One-at-a-time scenarios aggregated over the 24 groups (misspecified margin, min 
 
 | param               |   seg_vs_global | first                 |
 |:--------------------|----------------:|:----------------------|
-| reverse_a           |          0.0059 | segment_aware_kkt     |
-| reverse_t           |         -0.1982 | top_k_revenue_at_risk |
-| reverse_a+reverse_t |         -0.3234 | top_k_revenue_at_risk |
+| reverse_a           |          0.0457 | segment_aware_kkt     |
+| reverse_t           |         -0.2153 | top_k_revenue_at_risk |
+| reverse_a+reverse_t |         -0.3221 | top_k_revenue_at_risk |
 
 Reading: within +-50% perturbations the segment-aware plan keeps its lead because the *direction* of the assumed heterogeneity is unchanged. If the direction itself is wrong (tier effect on t reversed) it falls behind global KKT. The advantage rests on the assumed ordering of segments and tiers, which this data cannot verify.
 
@@ -201,30 +201,30 @@ Simulation on the test split (see `src/churn/allocate/rounds.py` for assumptions
 
 | | mean saved | 90% interval |
 |---|---:|---|
-| rounds | 57,975 | [0, 189,328] |
-| one-shot | 85,872 | [0, 214,839] |
-| paired difference (rounds - one-shot) | -27,896 (SE 6,722) | [-183,282, 99,523] |
+| rounds | 58,030 | [0, 189,333] |
+| one-shot | 87,725 | [0, 238,710] |
+| paired difference (rounds - one-shot) | -29,695 (SE 7,081) | [-198,394, 124,722] |
 
-Rounds beat one-shot in 38% of seeds. Mean spend: rounds 15,000, one-shot 15,000; the largest total over any run was 15,000.00 against a budget of 15,000.
+Rounds beat one-shot in 35% of seeds. Mean spend: rounds 15,000, one-shot 15,000; the largest total over any run was 15,000.00 against a budget of 15,000.
 
 Reading: in this model rounds do **not** beat a single up-front allocation. Only 1/6 of the budget is available in round 1, so customers are protected later, after some have already churned, while the benefit of re-allocating money away from removed customers is small (only a few percent of customers leave per round). Single-seed outcomes are very noisy (each saved customer is worth ~100k), hence the wide per-seed intervals; the mean difference is 4.2 standard errors from zero. Rounds would pay off if the offer effect expired each round or if risk scores were refreshed with new information, neither of which is modelled.
 
 ## Production plan and offer matching (stage 2)
 
-Portfolio budget 100,000 EUR on all customers: 544 targeted, 99,811 spent. Continuous KKT would save 600,757; after snapping to the catalog (re-balanced in 31 rounds, effective stage-1 budget 156,005) it saves 567,354.
+Portfolio budget 100,000 EUR on all customers: 555 targeted, 99,917 spent. Continuous KKT would save 571,057; after snapping to the catalog (re-balanced in 12 rounds, effective stage-1 budget 189,109) it saves 537,606.
 
 |                 |   customers |
 |:----------------|------------:|
-| value_discount  |         238 |
-| service_call    |         175 |
-| retention_bonus |         105 |
-| fee_waiver      |          23 |
-| loyalty_email   |           3 |
+| service_call    |         222 |
+| value_discount  |         197 |
+| retention_bonus |         108 |
+| fee_waiver      |          26 |
+| loyalty_email   |           2 |
 
 ## KKT vs dual ascent
 
-- KKT objective (continuous spend): 600,757
-- Dual-ascent objective: 600,591 (gap 0.028%)
+- KKT objective (continuous spend): 571,057
+- Dual-ascent objective: 570,700 (gap 0.062%)
 
 ## Assumptions
 - Response curves and offer costs/eligibility are assumptions, not measured uplift.

@@ -69,7 +69,4 @@ export async function allocate(budget: number, strategy: string): Promise<any> {
 export const useAllocate = () =>
   useMutation({ mutationFn: ({ budget, strategy }: { budget: number; strategy: string }) => allocate(budget, strategy) });
 
-export function fmtMoney(x: number | null | undefined, digits = 0): string {
-  if (x == null || isNaN(x)) return "–";
-  return x.toLocaleString("en-US", { maximumFractionDigits: digits });
-}
+export { fmtMoney } from "./lib/format";

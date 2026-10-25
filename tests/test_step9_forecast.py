@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from churn.config import load_config
+from churn.config import ROOT, load_config
 from churn.risk import forecast as fc
 from churn.risk import scenarios as sc
 
@@ -155,6 +155,8 @@ def test_loader_returns_fixed_frequency_series_without_gaps(tmp_path):
     assert s.index[-1] <= pd.Timestamp("2010-07-25")                                 # partial last week dropped
 
 
+@pytest.mark.skipif(not (ROOT / BASE["forecast"]["sources"]["telco_reconstruction"]["path"]).exists(),
+                    reason="raw Telco workbook is not in the repo (gitignored); runs locally only")
 def test_loader_telco_source_is_monthly_and_gap_free():
     cfg = copy.deepcopy(BASE)
     cfg["forecast"]["source"] = "telco_reconstruction"

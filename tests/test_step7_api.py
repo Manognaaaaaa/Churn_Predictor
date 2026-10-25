@@ -43,6 +43,7 @@ def test_portfolio_forecast_metrics(client):
     assert {"n_customers", "total_revenue_at_risk", "band_counts", "by_segment"} <= set(p)
     f = client.get("/forecast", params={"scenario": "no_intervention"}).json()
     assert f["scenario"] == "no_intervention" and len(f["points"]) > 0
+    assert f["freq"] in ("MS", "W-SUN")                          # period of the `month` column
     m = client.get("/model/metrics").json()
     assert "models" in m and "calibration_curve" in m
 

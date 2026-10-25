@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from churn.risk.forecast import backtest, diagnostics, fit_forecast, moving_average_baseline
 from churn.risk.segments import build_segments
 
 
@@ -33,31 +32,6 @@ def features(scores):
         "IsActiveMember": rng.integers(0, 2, n),
         "NumOfProducts": rng.integers(1, 5, n),
     })
-
-
-def test_synthetic_history_positive(scores):
-    from churn.risk.forecast import synthetic_history
-    s = synthetic_history(scores, 24, 42)
-    assert len(s) == 24 and (s > 0).all()
-
-
-def test_forecast_shapes(scores):
-    from churn.risk.forecast import synthetic_history
-    s = synthetic_history(scores, 24, 42)
-    a = fit_forecast(s, (1, 0, 0), 6)
-    m = moving_average_baseline(s, 6, 6)
-    assert len(a) == 6 and len(m) == 6
-    assert (a["lower"] <= a["forecast"]).all() and (a["forecast"] <= a["upper"]).all()
-    assert set(a.columns) >= {"month", "forecast", "lower", "upper"}
-
-
-def test_backtest_and_diagnostics(scores):
-    from churn.risk.forecast import synthetic_history
-    s = synthetic_history(scores, 24, 42)
-    bt = backtest(s, (1, 0, 0), 6)
-    assert bt["arima_mae"] > 0 and bt["ma_baseline_mae"] > 0
-    d = diagnostics(s)
-    assert len(d["acf"]) == 7
 
 
 def test_build_segments_contract(scores, features):

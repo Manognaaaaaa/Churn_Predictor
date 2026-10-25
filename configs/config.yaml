@@ -74,10 +74,65 @@ models:
     lr: 0.001
 
 forecast:
-  months_ahead: 12
-  history_months: 24
-  baseline_window: 6            # moving-average baseline
-  arima_order: [1, 1, 1]
+  # Step 9: real revenue series (UCI Online Retail II, weekly). The series is a UK gift wholesaler,
+  # NOT the bank customers of the churn model; the forecast is portfolio revenue, the churn model
+  # supplies the share of revenue at risk (formulas below). Weekly points keep the parquet column
+  # name `month` (it holds the week-ending Sunday); the /forecast response carries a `freq` field.
+  source: online_retail           # online_retail | telco_reconstruction
+  freq: W-SUN                     # weeks ending Sunday (use MS for monthly)
+  currency: "GBP"
+  holdout: 8                      # last h points held out (8 weeks; 4 if monthly)
+  horizon: 12                     # steps forecast beyond the last observation
+  ci_level: 0.95
+  seasonal_period: 52             # weeks per year (12 if monthly)
+  adf:
+    alpha: 0.05                   # d = smallest differencing order whose ADF p-value < alpha
+    regression: c
+    max_d: 2
+  acf_lags: 26                    # lags shown in the ACF/PACF plots
+  order_grid:                     # (p, q) ranges, inclusive; d comes from the ADF step; AIC on train
+    p: [0, 3]
+    q: [0, 3]
+  seasonal_grid:                  # used only if the fitted part holds >= min_cycles full cycles
+                                  # (3: two cycles cannot separate seasonality from noise nor identify seasonal ARMA terms)
+    min_cycles: 3
+    P: [0, 1]
+    Q: [0, 1]
+    D: 1
+  ljung_box_lags: [8, 16]
+  ma_windows: [2, 4, 8, 12, 26]   # candidate moving-average windows, chosen on the training part
+  ma_select_origins: 8            # origins inside the training part used to choose the window
+  rolling:
+    origins: 10                   # expanding-window origins ending at the last full holdout
+    step: 4                       # points between consecutive origins
+  figures:
+    acf_pacf: reports/figures/acf_pacf.png
+    residual_acf: reports/figures/residual_acf.png
+    scenarios: reports/figures/forecast_scenarios.png
+  # Scenario formulas (Phase 9.2). L is computed on the churn test split with calibrated p:
+  #   L  = sum_i p_i v_i / sum_i v_i                     expected churn loss rate
+  #   L' = L - (expected revenue saved by the Step 8 segment-aware, offer-snapped allocation) / sum_i v_i
+  #   no_intervention = forecast * (1 - L)
+  #   with_allocation = forecast * (1 - L')              so with_allocation >= no_intervention
+  # ---- candidate real series (Phase 9.0). `source` is chosen after the 9.0 checkpoint. ----
+  sources:
+    telco_reconstruction:         # revenue rebuilt from tenure x Monthly Charges (survivorship-biased)
+      path: data/raw/Telco_customer_churn.xlsx
+      tenure_col: Tenure Months
+      charge_col: Monthly Charges
+      snapshot_month: "2019-06"   # the file has no calendar date: assumed snapshot month (assumption)
+      months: 72
+      freq: MS
+    online_retail:                # UCI Online Retail II, real dated invoices
+      path: data/raw/online_retail_II.xlsx
+      cache: data/interim/online_retail_ii.parquet
+      drop_invoice_prefix: "C"    # cancellations
+      min_quantity: 0             # keep Quantity > this
+      min_price: 0                # keep Price > this
+  choice_report:
+    adf_regression: c             # ADF with constant
+    seasonal_period: {MS: 12, W-SUN: 52}
+    decomposition_model: additive
 
 budget:
   total: 100000

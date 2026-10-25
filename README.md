@@ -48,13 +48,13 @@ flowchart LR
 | 6 | Budget allocation | Lagrangian/KKT solver + gradient-descent check, offer matching per segment, reallocation loop. Strategy comparison, sensitivity analysis, calibrated vs uncalibrated test. | 4, 5 (solver can use mock data) | `allocations.parquet`, allocation report | TBD | ✅ |
 | 7 | App + ship | FastAPI endpoints + React dashboard (Overview, Client Lookup, Budget Planner, Model & Data). Tests + CI, Docker, deploy, final report. | 6 (can start on mock data after 1) | live app, docs | TBD | ✅ |
 | 8 | Make the claims testable | Segment-aware response curves per segment x value tier, offer catalog and two-stage matching, six strategies on the test split, label-based calibration test with bootstrap CIs, sensitivity (+-25/50%), reallocation rounds, API strategies + sweep. | 4, 5, 6 | `allocation_summary.json`, `reports/allocation.md` | TBD | ✅ |
-| 9 | Real time series for ARIMA | Replace the synthetic revenue history with a real dated series; ARIMA done properly (stationarity, ACF/PACF, AIC grid, residual checks, rolling-origin backtest). | 5, 8 | `forecast.parquet`, time-series report | TBD | ⬜ |
+| 9 | Real time series for ARIMA | Replace the synthetic revenue history with a real dated series; ARIMA done properly (stationarity, ACF/PACF, AIC grid, residual checks, rolling-origin backtest). | 5, 8 | `forecast.parquet`, time-series report | TBD | ✅ |
 
 **Status legend:** ⬜ not started · 🟨 in progress · ✅ done
 
 Owners update this table in their PRs.
 
-**Implementation notes (steps 2–8 complete; step 9 pending):** the datasets have no timestamps, so splits are stratified 70/15/15 with stratified k-fold CV instead of time-based windows (recorded in `configs/config.yaml` and `reports/model_card.md`). All other leakage rules hold — transformers, PCA and calibration are fit on train/valid only.
+**Implementation notes (steps 2–9 complete):** the datasets have no timestamps, so splits are stratified 70/15/15 with stratified k-fold CV instead of time-based windows (recorded in `configs/config.yaml` and `reports/model_card.md`). All other leakage rules hold — transformers, PCA and calibration are fit on train/valid only.
 
 ## Syllabus coverage
 
@@ -62,7 +62,7 @@ Owners update this table in their PRs.
 |---|---|
 | Bayesian inference, MLE vs MAP | 4 |
 | PCA | 3 |
-| Time series (ARIMA, ACF/PACF, moving averages) | 5 |
+| Time series (ARIMA, ACF/PACF, moving averages) | 5, 9 |
 | LSTM | 4 |
 | Constrained optimization (Lagrange multipliers, KKT, gradient descent) | 6 |
 | Data visualization | 2, 7 |
@@ -111,6 +111,7 @@ pip install -r requirements.txt
 
 - Put the raw datasets in `data/raw/` (gitignored). Used here: `Churn_Modelling.csv` (10,000 customers, primary) and `Telco_customer_churn.xlsx` (7,043 rows, secondary); `configs/config.yaml` maps each schema and `active_dataset` picks one.
 - `make help` lists all targets.
+- Step 9: `make risk` loads `data/raw/online_retail_II.xlsx` (UCI Online Retail II; first read caches `data/interim/online_retail_ii.parquet`), fits ARIMA with the baselines, and writes `reports/09_timeseries.md` and the ACF/PACF, residual and scenario figures; `make allocate` then adds the `with_allocation` scenario.
 - Step 8 outputs: `make claims` (after `make allocate`) writes `artifacts/allocation_summary.json`, `artifacts/claims_*.json`, three figures in `reports/figures/`, and regenerates `reports/allocation.md`. Run `make train` once first so `scores.parquet` carries `split`, `churned`, `customer_value` and `test_probs.parquet` exists.
 - `make mocks` writes fake artifacts to `artifacts/mock/` so the app track can start early.
 
@@ -159,7 +160,18 @@ Trained on `Churn_Modelling.csv`: 10,000 customers, 20.4% churn, stratified 70/1
 
 Held-out test with isotonic calibration: PR-AUC 0.6756, Brier 0.1018, ECE 0.0234 (raw: 0.7055 / 0.1043 / 0.0396) — calibration cuts ECE by ~40% at a small PR-AUC cost. Cost-optimal threshold 0.060 flags 1,061 of 1,500 validation customers.
 
-**Portfolio snapshot:** 208.1M revenue at risk; risk bands 7,151 green / 1,617 amber / 1,232 red; ARIMA(1,1,1) forecast backtest MAE 547,720 vs 685,324 for the moving-average baseline.
+**Portfolio snapshot:** 208.1M revenue at risk; risk bands 7,151 green / 1,617 amber / 1,232 red; weekly revenue forecast on a real series (UCI Online Retail II): ARIMA does **not** beat the simple baselines, see below.
+
+**Revenue forecast (Step 9, real series, weekly, UCI Online Retail II, 104 weeks, 8-week holdout):** ADF on the training level p = 0.0003 so d = 0; AIC picks ARIMA(1,0,1) (the next four orders are within 1.0 AIC); Ljung-Box p = 0.88 / 0.89 at lags 8 / 16.
+
+| Method | Holdout MAE | Holdout MAPE | Rolling-origin MAE (10 origins) | Rolling MAPE |
+|---|---|---|---|---|
+| ARIMA(1,0,1) | 114,173 | 35.3% | 49,389 | 25.6% |
+| Naive (last value) | 42,339 | 14.8% | 40,877 | 21.4% |
+| Moving average (window 8) | 84,865 | 25.5% | 52,937 | 28.4% |
+| Seasonal naive (lag 52) | 53,019 | 18.3% | 35,079 | 19.2% |
+
+ARIMA is last on the holdout and third of four in the rolling backtest (it beats only the moving average there). The series has one recurring Q4 peak and a Christmas shutdown, and two years of history cannot support seasonal ARIMA terms. The earlier "ARIMA beats moving average by 20%" result came from a simulated AR(1) history and was circular; it has been removed. Scenarios (forecast x (1 - L), L = 0.2057 from the churn test split; with the Step 8 allocation L' = 0.2052): 12-week totals 2,071,244 vs 2,072,661 GBP, a +0.07% effect, because the allocation budget is small next to the revenue at risk. The retail series and the bank customers are different businesses; the scenarios show the mechanism, not a business estimate. See `reports/09_timeseries.md` and `reports/09_timeseries_choice.md`.
 
 **Strategy comparison (test split, 1,500 customers, budget 15,000 = 100k x population share; expected revenue saved under the segment-aware response model, continuous spend / after offer snapping):**
 
@@ -179,6 +191,7 @@ Segment-aware vs global KKT: +16.8% expected, realized difference +12,053 with 9
 - Offer response curves (per-group response ceiling `a_g` and saturation `t_g`), offer costs and offer eligibility are assumptions, not measured uplift: there is no treatment data. The segment-aware advantage rests on the assumed ordering of segments and tiers (reversing the tier effect makes it lose to a global curve); see the sensitivity section of `reports/allocation.md`.
 - The GMM segments differ only modestly in engagement, so the derived response multipliers vary about +-15%.
 - Churn is defined on static bank snapshots: the datasets carry no timestamps, so there is no true temporal validation and the LSTM consumes jittered synthetic sequences.
+- The revenue forecast uses a different, real dataset (a UK wholesaler, weekly, two years); it is linked to the churn model only through a loss-rate ratio. With two years of history seasonal ARIMA cannot be fitted, and ARIMA does not beat naive or seasonal-naive baselines on it. AIC differences between low orders are tiny (the choice is not sharp).
 - `customer_value` is EstimatedSalary (an income proxy), not observed revenue; calibration is fit on a single validation split and drift is not monitored.
 
 

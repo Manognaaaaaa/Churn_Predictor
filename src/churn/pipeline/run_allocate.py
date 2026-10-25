@@ -8,6 +8,10 @@ import pandas as pd
 
 from churn.allocate import groups as gp
 from churn.allocate import offers as of
+from churn.allocate import strategies as st
+from churn.allocate.evaluate import load_eval_problem
+from churn.risk import scenarios as sc
+from churn.risk.forecast_report import write_forecast_report
 from churn.allocate.report import write_report
 from churn.allocate import solver as sv
 from churn.config import ROOT, ensure_dirs, load_config
@@ -76,17 +80,21 @@ def main() -> None:
     alloc = pd.DataFrame(rows)
     alloc.to_parquet(artifacts / "allocations.parquet", index=False)
 
-    # ---- with_allocation forecast scenario: monthly saved revenue lifts the forecast
+    # ---- with_allocation forecast scenario: L' = L - saved / sum(v) on the churn test split
+    base = pd.read_parquet(artifacts / "forecast_base.parquet")
+    meta = json.loads((artifacts / "forecast_meta.json").read_text())
     fcst = pd.read_parquet(artifacts / "forecast.parquet")
-    monthly_saved = float(saved.sum()) / 12.0
-    fut = fcst["scenario"].eq("no_intervention") & fcst["forecast"].notna()
-    alt = fcst[fut].copy()
-    alt["scenario"] = "with_allocation"
-    alt["forecast"] = alt["forecast"] + monthly_saved
-    alt["lower"] = alt["lower"] + monthly_saved * 0.8
-    alt["upper"] = alt["upper"] + monthly_saved * 1.2
-    fcst = pd.concat([fcst, alt], ignore_index=True)
-    fcst.to_parquet(artifacts / "forecast.parquet", index=False)
+    fcst = fcst[fcst["scenario"] != "with_allocation"]
+    pr_t, _, _, scale = load_eval_problem(cfg, cfg["allocation"]["eval_split"])
+    snap_t = st.allocate_snapped("segment_aware_kkt", pr_t, budget * scale, cfg["allocation"])
+    saved_t = float(sv.expected_saved(snap_t["spend"], pr_t.p, pr_t.v, pr_t.a, pr_t.tau).sum())
+    loss_alloc = sc.reduced_loss_rate(meta["loss_rate"], saved_t, float(pr_t.v.sum()))
+    alt = sc.scenario_frame(None, base, loss_alloc, "with_allocation", include_history=False)
+    pd.concat([fcst, alt], ignore_index=True).to_parquet(artifacts / "forecast.parquet", index=False)
+    meta.update({"saved": saved_t, "loss_rate_allocation": loss_alloc,
+                 "allocation_budget_test": float(budget * scale)})
+    (artifacts / "forecast_meta.json").write_text(json.dumps(meta, indent=2))
+    write_forecast_report(cfg)
 
     report = {
         "budget": budget, "currency": cfg["budget"]["currency"],
@@ -98,7 +106,8 @@ def main() -> None:
             "snapped_spend": float(s.sum()), "iterations": snapped["iterations"],
             "effective_budget": snapped["effective_budget"], "dropped": snapped["dropped"],
             "offer_counts": pd.Series(offer_arr[s > 0]).value_counts().to_dict()},
-        "monthly_saved_uplift": monthly_saved,
+        "forecast_scenario": {"loss_rate": meta["loss_rate"], "loss_rate_allocation": loss_alloc,
+                              "saved_test_split": saved_t},
         "assumptions": {
             "response_curve": "expected saved = p*v*a_g*(1-exp(-x/tau_i)), tau_i = t_g*v_i",
             "group_params": table.to_dict("records"),

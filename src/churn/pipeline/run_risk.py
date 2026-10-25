@@ -7,6 +7,8 @@ import pandas as pd
 
 from churn.config import ROOT, ensure_dirs, load_config
 from churn.risk import forecast as fc
+from churn.risk import scenarios as sc
+from churn.risk.forecast_report import write_forecast_report
 from churn.risk.segments import build_segments
 
 
@@ -22,37 +24,34 @@ def main() -> None:
                     if c not in ("customer_id", "churned", "snapshot_date", "split",
                                  "customer_value_raw")]
 
-    # ---- forecast (synthetic history, documented caveat)
+    # ---- forecast: ARIMA on the real revenue series, no_intervention scenario
     fcfg = cfg["forecast"]
-    hist = fc.synthetic_history(scores, fcfg["history_months"], cfg["seed"])
-    diag = fc.diagnostics(hist)
-    # pick ARIMA order by backtest instead of trusting the config default
-    candidates = [tuple(fcfg["arima_order"]), (1, 0, 0), (2, 0, 0), (1, 0, 1)]
-    cands = []
-    for order in candidates:
-        b = fc.backtest(hist, order, fcfg["baseline_window"])
-        cands.append({"order": list(order), **b})
-    best_order = tuple(min(cands, key=lambda c: c["arima_mae"])["order"])
-    bt = fc.backtest(hist, best_order, fcfg["baseline_window"])
-    arima_fc = fc.fit_forecast(hist, best_order, fcfg["months_ahead"])
-    ma_fc = fc.moving_average_baseline(hist, fcfg["baseline_window"], fcfg["months_ahead"])
-
-    frames = [pd.DataFrame({"month": hist.index, "actual": hist.to_numpy(),
-                            "forecast": [None] * len(hist), "lower": [None] * len(hist),
-                            "upper": [None] * len(hist), "scenario": "no_intervention"}),
-              arima_fc.assign(scenario="no_intervention")]
-    f = pd.concat(frames, ignore_index=True)
-    f.to_parquet(artifacts / "forecast.parquet", index=False)
+    study = fc.run_study(cfg)
+    summ = study["summary"]
+    test = scores[scores["split"] == "test"]
+    p_t = test["p_churn_calibrated"].to_numpy(float)
+    v_t = test["customer_value"].to_numpy(float)
+    loss = sc.loss_rate(p_t, v_t)
+    base = study["final_frame"]
+    frame = sc.scenario_frame(study["series"], base, loss, "no_intervention", include_history=True)
+    frame.to_parquet(artifacts / "forecast.parquet", index=False)
+    base.to_parquet(artifacts / "forecast_base.parquet", index=False)
+    meta = {"loss_rate": loss, "n_test": int(len(test)), "total_value": float(v_t.sum()),
+            "freq": fcfg["freq"], "source": fcfg["source"], "currency": fcfg["currency"]}
+    (artifacts / "forecast_meta.json").write_text(json.dumps(meta, indent=2))
+    (artifacts / "forecast_eval.json").write_text(json.dumps(summ, indent=2, default=float))
+    write_forecast_report(cfg)
 
     # ---- segments
     seg, seg_meta = build_segments(scores, feats, feature_cols, cfg)
     seg.to_parquet(artifacts / "segments.parquet", index=False)
 
     summary = {
-        "forecast": {"diagnostics": diag, "backtest": bt,
-                     "arima_order": list(best_order),
-                     "order_candidates": cands,
-                     "next_12m_forecast_total": float(arima_fc["forecast"].sum())},
+        "forecast": {"source": fcfg["source"], "freq": fcfg["freq"], "arima_order": summ["order"],
+                     "holdout_metrics": summ["holdout_metrics"],
+                     "rolling_summary": summ["rolling"]["summary"],
+                     "loss_rate": loss,
+                     "horizon_forecast_total": float(base["forecast"].sum())},
         "segments": seg_meta,
         "portfolio": {
             "n_customers": int(len(scores)),
@@ -65,7 +64,9 @@ def main() -> None:
     }
     (artifacts / "risk_summary.json").write_text(json.dumps(summary, indent=2, default=str))
 
-    print(f"forecast: ARIMA MAE {bt['arima_mae']:,.0f} vs MA-baseline {bt['ma_baseline_mae']:,.0f}")
+    hm = summ["holdout_metrics"]
+    print(f"forecast ({fcfg['source']}, {fcfg['freq']}): ARIMA{tuple(summ['order'])} holdout MAE "
+          + ", ".join(f"{k} {v['mae']:,.0f}" for k, v in hm.items()) + f" | churn loss rate L={loss:.4f}")
     print(f"segments: k={seg_meta['chosen_k']} (BIC), "
           f"{seg['segment_name'].nunique()} named segments")
     print(f"portfolio: total revenue at risk "

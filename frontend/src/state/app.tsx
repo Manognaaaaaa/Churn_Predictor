@@ -14,7 +14,7 @@ interface Ctx {
   toastState: Toast | null;
   shortlist: string[];
   toggleShortlist: (c: Customer) => void;
-  logSent: (entry: { id: string; offer: string | null }) => void;
+  logSent: (entry: { id: string; offer: string | null }) => Promise<boolean>;
   segLabel: (raw: string | null | undefined) => string;
   returnFocus: () => void;
 }
@@ -64,21 +64,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (el && document.contains(el)) el.focus();
   }, []);
 
+  // the server keeps the shortlist and the sent-offer log; the browser copy is the fallback when the API write fails
+  useEffect(() => {
+    fetch("/shortlist").then((r) => (r.ok ? r.json() : Promise.reject())).then((r) => { setShortlist(r.customer_ids); writeList("shortlist", r.customer_ids); }).catch(() => { /* keep the browser copy */ });
+  }, []);
+
   const toggleShortlist = useCallback(
     (c: Customer) => {
-      setShortlist((cur) => {
-        const has = cur.includes(c.customer_id);
-        const next = has ? cur.filter((x) => x !== c.customer_id) : [...cur, c.customer_id];
-        writeList("shortlist", next);
-        toast(has ? `${customerName(c)} removed from the offer list.` : `${customerName(c)} added to the offer list.`);
-        return next;
-      });
+      const has = shortlist.includes(c.customer_id);
+      const next = has ? shortlist.filter((x) => x !== c.customer_id) : [...shortlist, c.customer_id];
+      setShortlist(next);
+      writeList("shortlist", next);
+      toast(has ? `${customerName(c)} removed from the offer list.` : `${customerName(c)} added to the offer list.`);
+      fetch(`/shortlist/${encodeURIComponent(c.customer_id)}`, { method: has ? "DELETE" : "PUT" }).catch(() => { /* saved in this browser only */ });
     },
-    [toast],
+    [shortlist, toast],
   );
 
-  const logSent = useCallback((entry: { id: string; offer: string | null }) => {
+  const logSent = useCallback(async (entry: { id: string; offer: string | null }) => {
     writeList("sent-offers", [...readList("sent-offers"), { ...entry, at: new Date().toISOString() }]);
+    try {
+      const r = await fetch("/offers/send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customer_id: entry.id, offer: entry.offer }) });
+      return r.ok;
+    } catch {
+      return false;
+    }
   }, []);
 
   useEffect(() => {

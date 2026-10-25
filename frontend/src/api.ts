@@ -72,7 +72,7 @@ interface Dist {
 export interface LeakageCheck {
   method: string;
   before: { distribution: Dist; train_in_sample: Qual; test_holdout: Qual };
-  after: { distribution: Dist; all_oof: Qual; train_rows_oof: Qual; test_rows_oof: Qual };
+  after: { distribution: Dist; all_oof: Qual; all_oof_crossfit?: Qual; train_rows_oof: Qual; test_rows_oof: Qual };
 }
 export interface Metrics {
   models: { name: string; valid_pr_auc?: number; valid_brier?: number; valid_ece?: number }[];

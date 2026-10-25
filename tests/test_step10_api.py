@@ -121,3 +121,19 @@ def test_scores_are_out_of_fold():
     assert gap < 0.08, f"train rows look in-sample (PR-AUC gap {gap:.3f})"
     leak = json.loads((art / "leakage_check.json").read_text())
     assert leak["before"]["train_in_sample"]["pr_auc"] - leak["before"]["test_holdout"]["pr_auc"] > 0.1
+    if "all_oof_crossfit" in leak["after"]:
+        assert 0 < leak["after"]["all_oof_crossfit"]["ece"] < 0.05
+
+
+def test_shortlist_and_sent_offers_are_recorded(client):
+    cid = client.get("/customers", params={"limit": 1}).json()["items"][0]["customer_id"]
+    client.delete(f"/shortlist/{cid}")
+    assert cid not in client.get("/shortlist").json()["customer_ids"]
+    assert cid in client.put(f"/shortlist/{cid}").json()["customer_ids"]
+    assert client.put(f"/shortlist/{cid}").json()["customer_ids"].count(cid) == 1
+    assert cid not in client.delete(f"/shortlist/{cid}").json()["customer_ids"]
+    assert client.put("/shortlist/NOPE-404").status_code == 404
+    sent = client.post("/offers/send", json={"customer_id": cid, "offer": "fee_waiver"}).json()
+    assert sent["customer_id"] == cid and sent["sent_at"]
+    assert client.get("/offers/sent").json()["items"][0]["offer"] == "fee_waiver"
+    assert client.post("/offers/send", json={"customer_id": "NOPE-404"}).status_code == 404

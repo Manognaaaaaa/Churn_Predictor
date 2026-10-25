@@ -130,6 +130,11 @@ export default function Model() {
             <Compare label="Top 10% most at risk start at" before={leak.before.distribution.quantiles.p90} after={leak.after.distribution.quantiles.p90} fmt={(n) => `${(n * 100).toFixed(0)}%`} />
             <Compare label="PR-AUC on the 7,000 training customers" before={leak.before.train_in_sample.pr_auc} after={leak.after.train_rows_oof.pr_auc} fmt={pct1} />
             <Compare label="PR-AUC on the held-out test customers" before={leak.before.test_holdout.pr_auc} after={leak.after.test_rows_oof.pr_auc} fmt={pct1} />
+            {leak.after.all_oof_crossfit && (
+              <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 12 }}>
+                Calibration error across all customers, with the calibrator fitted on the other folds only: <b>{pct1(leak.after.all_oof_crossfit.ece)}</b>. (Fitting and applying it on the same customers would show about 0%, which flatters the model.)
+              </p>
+            )}
             <p style={{ fontSize: 12, color: "var(--ink-faint)", marginTop: 10 }}>
               In-sample, the training customers scored a PR-AUC of {pct1(leak.before.train_in_sample.pr_auc)} while held-out customers scored {pct1(leak.before.test_holdout.pr_auc)}. Out-of-fold, both groups score about the same, which is what an honest score looks like.
             </p>

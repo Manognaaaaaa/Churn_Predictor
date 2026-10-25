@@ -76,6 +76,11 @@ async function run(viewport, label, reducedMotion = false) {
   // pick an offer: the gauge note shows "was"
   const offerBtn = page.locator("[role=dialog] .offer").first();
   if (await offerBtn.count()) { await offerBtn.click(); await page.waitForTimeout(1500); ok(`${label}: offer shows (was ...)`, /\(was /.test(await page.locator("[role=dialog]").innerText())); }
+  const before = (await (await page.request.get(`${base}/offers/sent`)).json()).items.length;
+  await page.getByRole("button", { name: "Send offer" }).click();
+  await page.waitForTimeout(800);
+  const afterSent = (await (await page.request.get(`${base}/offers/sent`)).json()).items.length;
+  ok(`${label}: send offer is recorded on the server`, afterSent === before + 1, `${before} -> ${afterSent}`);
   await page.keyboard.press("Escape");
   await page.waitForTimeout(900);
   ok(`${label}: Escape closes dialog`, (await page.locator("[role=dialog]").count()) === 0);

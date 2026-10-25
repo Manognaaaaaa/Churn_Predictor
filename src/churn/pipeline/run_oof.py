@@ -27,6 +27,23 @@ def _metrics(y, p, bins) -> dict:
     return {"pr_auc": pr_auc(y, p), "brier": brier(y, p), "ece": ece(y, p, bins)}
 
 
+def crossfit_only() -> None:
+    """Add the honest (cross-fitted calibration) metrics to the existing out-of-fold artifacts."""
+    cfg = load_config()
+    artifacts = ROOT / cfg["paths"]["artifacts"]
+    scores = pd.read_parquet(artifacts / "scores.parquet")
+    metrics = json.loads((artifacts / "metrics.json").read_text())
+    y = scores["churned"].to_numpy(int)
+    p = oof.crossfit_calibrated(scores["p_churn_raw"].to_numpy(float), y, metrics["oof_calibration"],
+                                cfg["windows"]["cv_folds"] + 1, cfg["seed"])
+    q = _metrics(y, p, cfg["models"]["calibration"]["ece_bins"])
+    for path in (artifacts / "leakage_check.json", artifacts / "metrics.json"):
+        d = json.loads(path.read_text())
+        (d["leakage_check"] if "leakage_check" in d else d)["after"]["all_oof_crossfit"] = q
+        path.write_text(json.dumps(d, indent=2, default=float))
+    print("cross-fitted calibration (honest):", q)
+
+
 def main() -> None:
     cfg = load_config()
     artifacts = ROOT / cfg["paths"]["artifacts"]
@@ -83,6 +100,7 @@ def main() -> None:
                    "test_holdout": _metrics(y[te], before_p[te], bins)},
         "after": {"distribution": oof.distribution(p_cal, bands),
                   "all_oof": _metrics(y, p_cal, bins),
+                  "all_oof_crossfit": _metrics(y, oof.crossfit_calibrated(p_raw, y, bundle["calibrator_name"], cfg["windows"]["cv_folds"] + 1, cfg["seed"]), bins),
                   "train_rows_oof": _metrics(y[tr], p_cal[tr], bins),
                   "test_rows_oof": _metrics(y[te], p_cal[te], bins)},
     }
@@ -101,4 +119,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    crossfit_only() if "--crossfit-only" in sys.argv else main()

@@ -60,3 +60,18 @@ def distribution(p: np.ndarray, bands: np.ndarray) -> dict:
             "n_ge_0.99": int((p >= 0.99).sum()), "n_le_0.01": int((p <= 0.01).sum()),
             "n_eq_1": int((p >= 0.9999).sum()),
             "band_counts": {k: int((bands == k).sum()) for k in ["green", "amber", "red"]}}
+
+
+def crossfit_calibrated(p_raw: np.ndarray, y: np.ndarray, method: str, folds: int, seed: int) -> np.ndarray:
+    """Calibrated scores where each customer's calibrator never saw their own label.
+
+    The calibrator used on the dashboard is fitted on all out-of-fold scores and applied to the same
+    customers, which flatters ECE. Here it is fitted on the other folds only, so the error is honest.
+    """
+    from sklearn.model_selection import StratifiedKFold
+
+    out = np.zeros(len(y), float)
+    for tr, va in StratifiedKFold(n_splits=folds, shuffle=True, random_state=seed).split(p_raw.reshape(-1, 1), y):
+        m, _ = calibrate_oof(p_raw[tr], y[tr], method)
+        out[va] = cal.platt_apply(m, p_raw[va]) if method == "platt" else cal.isotonic_apply(m, p_raw[va])
+    return out

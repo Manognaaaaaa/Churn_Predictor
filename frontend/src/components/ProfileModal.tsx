@@ -157,9 +157,9 @@ function Content({ d }: { d: CustomerDetail }) {
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 4 }}>
             <button
               className="cta"
-              onClick={() => {
-                logSent({ id: d.customer_id, offer: offer?.offer ?? null });
-                toast(`${offer ? offerLabel(offer.offer) : "Offer"} sent for ${name}.`);
+              onClick={async () => {
+                const saved = await logSent({ id: d.customer_id, offer: offer?.offer ?? null });
+                toast(`${offer ? offerLabel(offer.offer) : "Offer"} recorded for ${name}.${saved ? "" : " The server could not be reached, so it is saved in this browser only."}`);
               }}
             >
               Send offer

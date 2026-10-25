@@ -17,7 +17,6 @@ from churn.config import load_config
 
 router = APIRouter(tags=["customers"])
 
-DRIVER_FMT = "p={:.2f} ({:+.2f})"
 
 
 @router.get("/customers")
@@ -125,38 +124,75 @@ def customer_detail(customer_id: str):
     }
 
 
+PDF_FEATURES = {
+    "NumOfProducts": "Number of bank products", "IsActiveMember": "Active member", "Age": "Age",
+    "Tenure": "Years with the bank", "CreditScore": "Credit score", "Balance": "Account balance",
+    "zero_balance": "Empty account", "HasCrCard": "Has a credit card", "customer_value": "Yearly value",
+    "balance_value_ratio": "Balance compared with yearly value",
+}
+PDF_OFFERS = {"value_discount": "Better savings rate", "fee_waiver": "Waive account fees",
+              "service_call": "Call from relationship manager", "retention_bonus": "Loyalty bonus",
+              "loyalty_email": "Personal email from the bank"}
+
+
+def _plain_feature(name: str) -> str:
+    if name in PDF_FEATURES:
+        return PDF_FEATURES[name]
+    if name.startswith("Geography_"):
+        return f"Based in {name[10:]}"
+    if name.startswith("Gender_"):
+        return f"{name[7:]} customer"
+    return name.replace("_", " ").capitalize()
+
+
+def _pdf_text(s: str) -> str:
+    """The built-in PDF fonts are latin-1 only."""
+    return s.encode("latin-1", "replace").decode("latin-1")
+
+
 @router.get("/customers/{customer_id}/report.pdf")
 def customer_pdf(customer_id: str):
-    df = artifacts.joined()
+    df = artifacts.people()
     row = df[df["customer_id"] == customer_id]
     if row.empty:
         raise HTTPException(404, f"Unknown customer {customer_id}")
     r = row.iloc[0]
+    d = customer_detail(customer_id)
+    name = f"{'Mr ' if r.get('Gender') == 'Male' else 'Ms ' if r.get('Gender') == 'Female' else ''}{r.get('Surname') or 'Customer'}"
+    p = float(r.p)
+    chance = "99%+" if p >= 0.99 else f"{round(p * 100)}%"
+    word = {"red": "High risk", "amber": "Medium risk", "green": "Low risk"}[r.band]
 
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, f"Churn risk report - {customer_id}", ln=1)
+    pdf.set_font("Helvetica", "B", 18)
+    pdf.cell(0, 11, _pdf_text(f"Customer report: {name}"), new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "", 11)
-    pdf.cell(0, 8, f"Snapshot: {r.snapshot_date}", ln=1)
-    pdf.cell(0, 8, f"P(churn) calibrated: {r.p_churn_calibrated:.2f} "
-                   f"(raw {r.p_churn_raw:.2f}) - band {r.risk_band}", ln=1)
-    pdf.cell(0, 8, f"Revenue at risk: {r.revenue_at_risk:,.2f}", ln=1)
-    if isinstance(r.segment_name, str):
-        pdf.cell(0, 8, f"Segment: {r.segment_name} ({r.value_tier} value)", ln=1)
+    pdf.cell(0, 7, f"Customer ID {customer_id}  |  {r.get('Geography', '')}  |  Age {int(r['Age']) if pd.notna(r.get('Age')) else '-'}", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(3)
+    pdf.cell(0, 8, f"{word}: {chance} chance of leaving", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 8, f"Yearly value (estimated salary): {r.customer_value:,.0f}", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 8, f"Yearly value at risk: {r.rar:,.0f}", new_x="LMARGIN", new_y="NEXT")
+    if pd.notna(r.get("Exited")) and int(r["Exited"]) == 1:
+        pdf.cell(0, 8, "This customer left the bank in the data.", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(4)
-    pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 8, "Top churn drivers", ln=1)
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.cell(0, 8, "Why the model flags this customer", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "", 11)
-    for d in list(r.top_drivers):
-        pdf.cell(0, 7, f"  - {d['label']}: {DRIVER_FMT.format(d['contribution'], 0)}", ln=1)
-    if isinstance(r.offer, str):
+    for x in d["top_drivers"]:
+        pdf.cell(0, 7, _pdf_text(f"  - {_plain_feature(x['feature'])}: {'raises' if x['contribution'] > 0 else 'lowers'} the risk"), new_x="LMARGIN", new_y="NEXT")
+    if d["offers"]:
         pdf.ln(4)
-        pdf.set_font("Helvetica", "B", 12)
-        pdf.cell(0, 8, "Recommended action", ln=1)
+        pdf.set_font("Helvetica", "B", 13)
+        pdf.cell(0, 8, "Suggested offers (estimated effect)", new_x="LMARGIN", new_y="NEXT")
         pdf.set_font("Helvetica", "", 11)
-        pdf.multi_cell(0, 7, f"Offer: {r.offer} (spend {r.spend:,.2f}, "
-                             f"expected saved {r.expected_revenue_saved:,.2f})\n{r.reason}")
+        for o in d["offers"]:
+            tag = "  (best value)" if o["best"] else ""
+            pdf.multi_cell(0, 7, _pdf_text(f"  - {PDF_OFFERS.get(o['offer'], o['offer'])}{tag}: costs {o['cost']:,.0f}, "
+                                           f"chance of leaving falls to {round(o['new_p_churn'] * 100)}%, keeps about {o['value_kept']:,.0f}"),
+                           new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("Helvetica", "I", 9)
+        pdf.multi_cell(0, 5, "Offer effects are estimates from the allocation model; the project has no data from real offers.", new_x="LMARGIN", new_y="NEXT")
 
     buf = io.BytesIO(pdf.output())
     return StreamingResponse(buf, media_type="application/pdf",

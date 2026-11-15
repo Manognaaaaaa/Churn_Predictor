@@ -2,6 +2,8 @@ import { useMetrics } from "../api";
 import { fixed, full, pct1 } from "../lib/format";
 import { DrawnChart } from "../components/DrawnChart";
 import { Message, Skeleton } from "../components/bits";
+import { ModelCompare } from "../components/ModelCompare";
+import type { ModelRow } from "../components/ModelCompare";
 
 const MODEL_LABELS: Record<string, string> = {
   logreg_mle: "Logistic regression (MLE)",
@@ -47,6 +49,9 @@ export default function Model() {
   const test = m.test ?? {};
   const thr = m.threshold ?? {};
   const rows = [...(m.models ?? [])].sort((a, b) => ORDER.indexOf(a.name) - ORDER.indexOf(b.name));
+  const chartRows: ModelRow[] = rows
+    .filter((r) => r.valid_pr_auc != null && r.valid_brier != null && r.valid_ece != null)
+    .map((r) => ({ name: r.name, label: MODEL_LABELS[r.name] ?? r.name, pr: r.valid_pr_auc!, brier: r.valid_brier!, ece: r.valid_ece! }));
   const curve = (m.calibration_curve ?? []).map((p) => ({ x: p.bin_mean_pred, y: p.bin_frac_pos, n: p.n }));
   const gapPts = test.ece_calibrated != null ? Math.max(1, Math.round(test.ece_calibrated * 100)) : null;
   const leak = m.leakage_check;
@@ -70,6 +75,8 @@ export default function Model() {
         <Stat label="Test PR-AUC (calibrated)" value={pct1(test.pr_auc_calibrated)} />
         <Stat label="Test Brier (calibrated)" value={fixed(test.brier_calibrated)} />
       </div>
+
+      <ModelCompare rows={chartRows} chosen={m.best_model} test={test} />
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
         <section className="panel" style={{ flex: "1 1 420px", minWidth: 0, padding: 24 }}>

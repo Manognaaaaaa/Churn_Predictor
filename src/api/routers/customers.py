@@ -189,7 +189,7 @@ def customer_pdf(customer_id: str):
         for o in d["offers"]:
             tag = "  (best value)" if o["best"] else ""
             pdf.multi_cell(0, 7, _pdf_text(f"  - {PDF_OFFERS.get(o['offer'], o['offer'])}{tag}: costs {o['cost']:,.0f}, "
-                                           f"chance of leaving falls to {round(o['new_p_churn'] * 100)}%, keeps about {o['value_kept']:,.0f}"),
+                                           f"chance of leaving falls from {p * 100:.2f}% to {o['new_p_churn'] * 100:.2f}%, keeps about {o['value_kept']:,.0f}"),
                            new_x="LMARGIN", new_y="NEXT")
         pdf.set_font("Helvetica", "I", 9)
         pdf.multi_cell(0, 5, "Offer effects are estimates from the allocation model; the project has no data from real offers.", new_x="LMARGIN", new_y="NEXT")

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCustomer, useProductRates, useRates } from "../api";
 import type { CustomerDetail, Driver, ProductRate, Rates } from "../api";
-import { full, pct } from "../lib/format";
+import { full, pct, pct2 } from "../lib/format";
 import { BAND_VAR, BAND_WORD, customerName, featureLabel, initials, offerDesc, offerLabel, posterFor } from "../lib/plain";
 import { useApp } from "../state/app";
 import { BandTag, Skeleton } from "./bits";
@@ -11,6 +11,8 @@ import { storyFor } from "./Billboard";
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 function Gauge({ p, was, band }: { p: number; was: number | null; band: CustomerDetail["risk_band"] }) {
+  // With an offer picked, the change is a fraction of a point: show two decimals so it is visible.
+  const show = was != null ? pct2 : pct;
   return (
     <div>
       <svg viewBox="0 0 260 150" aria-hidden="true" style={{ width: "100%", maxWidth: 300, height: "auto", display: "block" }}>
@@ -26,8 +28,8 @@ function Gauge({ p, was, band }: { p: number; was: number | null; band: Customer
         <circle cx="130" cy="130" r="3" fill="var(--bg-raised)" />
       </svg>
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-        <span style={{ fontWeight: 300, fontSize: 48, lineHeight: "52px", letterSpacing: "-0.045em" }} aria-label={`${pct(p)} chance of leaving`}>{pct(p)}</span>
-        <span style={{ fontSize: 13, color: "var(--ink-muted)" }}>chance of leaving {was != null && `(was ${pct(was)})`}</span>
+        <span style={{ fontWeight: 300, fontSize: 48, lineHeight: "52px", letterSpacing: "-0.045em" }} aria-label={`${show(p)} chance of leaving`}>{show(p)}</span>
+        <span style={{ fontSize: 13, color: "var(--ink-muted)" }}>chance of leaving {was != null && `(was ${show(was)})`}</span>
         <span style={{ fontSize: 12, color: BAND_VAR[band] }}>{BAND_WORD[band]}</span>
       </div>
     </div>
@@ -151,7 +153,10 @@ function Content({ d }: { d: CustomerDetail }) {
                 <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{offerDesc(o.offer, d)}</span>
                 <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>Costs {full(o.cost)}, keeps about {full(o.value_kept)}</span>
               </span>
-              <span style={{ fontWeight: 500, color: "var(--blue-100)", whiteSpace: "nowrap" }}>{pct(o.new_p_churn)}</span>
+              <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", whiteSpace: "nowrap" }}>
+                <span style={{ fontWeight: 500, color: "var(--blue-100)" }}>{pct2(o.new_p_churn)}</span>
+                <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>down {((d.p_churn_calibrated - o.new_p_churn) * 100).toFixed(2)} pts</span>
+              </span>
             </motion.button>
           ))}
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 4 }}>

@@ -20,6 +20,11 @@ export function pct(p: number | null | undefined): string {
   return p >= 0.99 ? "99%+" : `${Math.round(p * 100)}%`;
 }
 
+/** 0.9062 -> 90.62% (offer effects are fractions of a point, so whole percents hide them) */
+export function pct2(p: number | null | undefined): string {
+  return p == null || isNaN(p) ? DASH : `${(p * 100).toFixed(2)}%`;
+}
+
 /** 0.676 -> 67.6% (model metrics) */
 export function pct1(x: number | null | undefined): string {
   return x == null || isNaN(x) ? DASH : `${(100 * x).toFixed(1)}%`;

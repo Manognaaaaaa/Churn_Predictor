@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import json
 
@@ -132,10 +133,22 @@ class CurveRequest(BaseModel):
     strategy: str = Field("segment_aware", pattern="^(" + "|".join(STRATEGY_MAP) + ")$")
 
 
+def _curve_stamp() -> str:
+    """Fingerprint of everything a curve depends on: the input files and the allocation settings.
+
+    Stamping on scores.parquet alone served a stale curve after the response-curve settings changed.
+    """
+    d, cfg = artifacts.artifacts_dir(), load_config()
+    files = [(n, (d / n).stat().st_mtime if (d / n).exists() else None)
+             for n in ("scores.parquet", "segments.parquet", "group_params.parquet")]
+    payload = json.dumps([files, cfg["allocation"], cfg["budget"]], sort_keys=True, default=str)
+    return hashlib.sha1(payload.encode()).hexdigest()
+
+
 @router.post("/allocate/curve")
 def allocate_curve(req: CurveRequest):
     """Value kept at budgets 100K to 5M (step 100K) from the real solver. Cached in memory and on disk."""
-    stamp = (artifacts.artifacts_dir() / "scores.parquet").stat().st_mtime
+    stamp = _curve_stamp()
     cached = _curves.get(req.strategy)
     path = artifacts.artifacts_dir() / f"allocation_curve_{req.strategy}.json"
     if cached is None and path.exists():
